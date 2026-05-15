@@ -1,0 +1,1966 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Sikrypt Backend API",
+    "version": "1.0.0",
+    "description": "Production crypto endpoints are under /crypto. Educational endpoints are under /asymmetric, /classic, /hash, /signature, /symmetric, and /comms."
+  },
+  "servers": [
+    { "url": "http://127.0.0.1:3000" }
+  ],
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key"
+      }
+    },
+    "schemas": {
+      "Base64": {
+        "type": "string",
+        "description": "Base64-encoded binary",
+        "example": "SGVsbG8="
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string" },
+          "message": { "type": "string" }
+        },
+        "example": {
+          "error": "invalid_request",
+          "message": "Missing required field"
+        },
+        "required": ["error", "message"]
+      },
+      "RsaKeyGenRequest": {
+        "type": "object",
+        "properties": {
+          "bits": { "type": "integer", "minimum": 2048, "maximum": 4096 }
+        },
+        "example": { "bits": 2048 },
+        "required": ["bits"]
+      },
+      "RsaKeyPairResponse": {
+        "type": "object",
+        "properties": {
+          "public_key_pem": { "type": "string" },
+          "private_key_pem": { "type": "string" }
+        },
+        "example": {
+          "public_key_pem": "-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----",
+          "private_key_pem": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----"
+        },
+        "required": ["public_key_pem", "private_key_pem"]
+      },
+      "X25519KeyPairResponse": {
+        "type": "object",
+        "properties": {
+          "public_key_base64": { "$ref": "#/components/schemas/Base64" },
+          "private_key_base64": { "$ref": "#/components/schemas/Base64" }
+        },
+        "example": {
+          "public_key_base64": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+          "private_key_base64": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB="
+        },
+        "required": ["public_key_base64", "private_key_base64"]
+      },
+      "Ed25519KeyPairResponse": {
+        "type": "object",
+        "properties": {
+          "public_key_base64": { "$ref": "#/components/schemas/Base64" },
+          "private_key_base64": { "$ref": "#/components/schemas/Base64" }
+        },
+        "example": {
+          "public_key_base64": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC=",
+          "private_key_base64": "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD="
+        },
+        "required": ["public_key_base64", "private_key_base64"]
+      },
+      "SecureChannelEncryptRequest": {
+        "type": "object",
+        "properties": {
+          "sender_private_key_base64": { "$ref": "#/components/schemas/Base64" },
+          "receiver_public_key_base64": { "$ref": "#/components/schemas/Base64" },
+          "plaintext_base64": { "$ref": "#/components/schemas/Base64" },
+          "aad_base64": { "$ref": "#/components/schemas/Base64" }
+        },
+        "example": {
+          "sender_private_key_base64": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=",
+          "receiver_public_key_base64": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+          "plaintext_base64": "SGVsbG8gd29ybGQ=",
+          "aad_base64": "YWRkLXRhZw=="
+        },
+        "required": [
+          "sender_private_key_base64",
+          "receiver_public_key_base64",
+          "plaintext_base64"
+        ]
+      },
+      "SecureChannelEncryptResponse": {
+        "type": "object",
+        "properties": {
+          "sender_public_key_base64": { "$ref": "#/components/schemas/Base64" },
+          "salt_base64": { "$ref": "#/components/schemas/Base64" },
+          "nonce_base64": { "$ref": "#/components/schemas/Base64" },
+          "ciphertext_base64": { "$ref": "#/components/schemas/Base64" }
+        },
+        "example": {
+          "sender_public_key_base64": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+          "salt_base64": "c2FsdC1ieXRlcw==",
+          "nonce_base64": "bm9uY2UtMTI=",
+          "ciphertext_base64": "Q0lQSEVSVEVYVA=="
+        },
+        "required": [
+          "sender_public_key_base64",
+          "salt_base64",
+          "nonce_base64",
+          "ciphertext_base64"
+        ]
+      },
+      "SecureChannelDecryptRequest": {
+        "type": "object",
+        "properties": {
+          "receiver_private_key_base64": { "$ref": "#/components/schemas/Base64" },
+          "sender_public_key_base64": { "$ref": "#/components/schemas/Base64" },
+          "salt_base64": { "$ref": "#/components/schemas/Base64" },
+          "nonce_base64": { "$ref": "#/components/schemas/Base64" },
+          "ciphertext_base64": { "$ref": "#/components/schemas/Base64" },
+          "aad_base64": { "$ref": "#/components/schemas/Base64" }
+        },
+        "example": {
+          "receiver_private_key_base64": "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=",
+          "sender_public_key_base64": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+          "salt_base64": "c2FsdC1ieXRlcw==",
+          "nonce_base64": "bm9uY2UtMTI=",
+          "ciphertext_base64": "Q0lQSEVSVEVYVA==",
+          "aad_base64": "YWRkLXRhZw=="
+        },
+        "required": [
+          "receiver_private_key_base64",
+          "sender_public_key_base64",
+          "salt_base64",
+          "nonce_base64",
+          "ciphertext_base64"
+        ]
+      },
+      "SecureChannelDecryptResponse": {
+        "type": "object",
+        "properties": {
+          "plaintext_base64": { "$ref": "#/components/schemas/Base64" }
+        },
+        "example": {
+          "plaintext_base64": "SGVsbG8gd29ybGQ="
+        },
+        "required": ["plaintext_base64"]
+      },
+      "RsaOaepEncryptRequest": {
+        "type": "object",
+        "properties": {
+          "public_key_pem": { "type": "string" },
+          "plaintext_base64": { "$ref": "#/components/schemas/Base64" },
+          "label_base64": { "$ref": "#/components/schemas/Base64" }
+        },
+        "example": {
+          "public_key_pem": "-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----",
+          "plaintext_base64": "SGVsbG8=",
+          "label_base64": "bGFiZWw="
+        },
+        "required": ["public_key_pem", "plaintext_base64"]
+      },
+      "RsaOaepEncryptResponse": {
+        "type": "object",
+        "properties": {
+          "ciphertext_base64": { "$ref": "#/components/schemas/Base64" }
+        },
+        "example": {
+          "ciphertext_base64": "Q0lQSEVSVEVYVA=="
+        },
+        "required": ["ciphertext_base64"]
+      },
+      "RsaOaepDecryptRequest": {
+        "type": "object",
+        "properties": {
+          "private_key_pem": { "type": "string" },
+          "ciphertext_base64": { "$ref": "#/components/schemas/Base64" },
+          "label_base64": { "$ref": "#/components/schemas/Base64" }
+        },
+        "example": {
+          "private_key_pem": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----",
+          "ciphertext_base64": "Q0lQSEVSVEVYVA==",
+          "label_base64": "bGFiZWw="
+        },
+        "required": ["private_key_pem", "ciphertext_base64"]
+      },
+      "RsaOaepDecryptResponse": {
+        "type": "object",
+        "properties": {
+          "plaintext_base64": { "$ref": "#/components/schemas/Base64" }
+        },
+        "example": {
+          "plaintext_base64": "SGVsbG8="
+        },
+        "required": ["plaintext_base64"]
+      },
+      "Ed25519SignRequest": {
+        "type": "object",
+        "properties": {
+          "private_key_base64": { "$ref": "#/components/schemas/Base64" },
+          "message_base64": { "$ref": "#/components/schemas/Base64" }
+        },
+        "example": {
+          "private_key_base64": "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD=",
+          "message_base64": "SGVsbG8="
+        },
+        "required": ["private_key_base64", "message_base64"]
+      },
+      "Ed25519SignResponse": {
+        "type": "object",
+        "properties": {
+          "signature_base64": { "$ref": "#/components/schemas/Base64" }
+        },
+        "example": {
+          "signature_base64": "U0lHTkFUVVJF"
+        },
+        "required": ["signature_base64"]
+      },
+      "Ed25519VerifyRequest": {
+        "type": "object",
+        "properties": {
+          "public_key_base64": { "$ref": "#/components/schemas/Base64" },
+          "message_base64": { "$ref": "#/components/schemas/Base64" },
+          "signature_base64": { "$ref": "#/components/schemas/Base64" }
+        },
+        "example": {
+          "public_key_base64": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC=",
+          "message_base64": "SGVsbG8=",
+          "signature_base64": "U0lHTkFUVVJF"
+        },
+        "required": ["public_key_base64", "message_base64", "signature_base64"]
+      },
+      "VerifyResponse": {
+        "type": "object",
+        "properties": {
+          "valid": { "type": "boolean" }
+        },
+        "example": { "valid": true },
+        "required": ["valid"]
+      },
+      "RsaPssSignRequest": {
+        "type": "object",
+        "properties": {
+          "private_key_pem": { "type": "string" },
+          "message_base64": { "$ref": "#/components/schemas/Base64" }
+        },
+        "example": {
+          "private_key_pem": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----",
+          "message_base64": "SGVsbG8="
+        },
+        "required": ["private_key_pem", "message_base64"]
+      },
+      "RsaPssSignResponse": {
+        "type": "object",
+        "properties": {
+          "signature_base64": { "$ref": "#/components/schemas/Base64" }
+        },
+        "example": {
+          "signature_base64": "U0lHTkFUVVJF"
+        },
+        "required": ["signature_base64"]
+      },
+      "RsaPssVerifyRequest": {
+        "type": "object",
+        "properties": {
+          "public_key_pem": { "type": "string" },
+          "message_base64": { "$ref": "#/components/schemas/Base64" },
+          "signature_base64": { "$ref": "#/components/schemas/Base64" }
+        },
+        "example": {
+          "public_key_pem": "-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----",
+          "message_base64": "SGVsbG8=",
+          "signature_base64": "U0lHTkFUVVJF"
+        },
+        "required": ["public_key_pem", "message_base64", "signature_base64"]
+      },
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string" },
+          "service": { "type": "string" }
+        },
+        "example": { "status": "ok", "service": "sikrypt-backend" },
+        "required": ["status", "service"]
+      },
+      "DiffieHellmanExchangeRequest": {
+        "type": "object",
+        "properties": {
+          "p": { "type": "integer", "description": "u128" },
+          "g": { "type": "integer", "description": "u128" },
+          "alice_private": { "type": "integer", "description": "u128" },
+          "bob_private": { "type": "integer", "description": "u128" }
+        },
+        "example": { "p": 23, "g": 5, "alice_private": 6, "bob_private": 15 },
+        "required": ["p", "g", "alice_private", "bob_private"]
+      },
+      "DiffieHellmanExchangeResponse": {
+        "type": "object",
+        "properties": {
+          "alice_public": { "type": "integer", "description": "u128" },
+          "bob_public": { "type": "integer", "description": "u128" },
+          "shared_secret": { "type": "integer", "description": "u128" }
+        },
+        "example": { "alice_public": 8, "bob_public": 19, "shared_secret": 2 },
+        "required": ["alice_public", "bob_public", "shared_secret"]
+      },
+      "RsaEncryptRequest": {
+        "type": "object",
+        "properties": {
+          "p": { "type": "integer", "description": "u128" },
+          "q": { "type": "integer", "description": "u128" },
+          "e": { "type": "integer", "description": "u128" },
+          "message": { "type": "integer", "description": "u128" }
+        },
+        "example": { "p": 61, "q": 53, "e": 17, "message": 65 },
+        "required": ["p", "q", "e", "message"]
+      },
+      "RsaEncryptResponse": {
+        "type": "object",
+        "properties": {
+          "ciphertext": { "type": "integer", "description": "u128" },
+          "n": { "type": "integer", "description": "u128" },
+          "e": { "type": "integer", "description": "u128" },
+          "d": { "type": "integer", "description": "u128" }
+        },
+        "example": { "ciphertext": 2790, "n": 3233, "e": 17, "d": 2753 },
+        "required": ["ciphertext", "n", "e", "d"]
+      },
+      "RsaDecryptRequest": {
+        "type": "object",
+        "properties": {
+          "p": { "type": "integer", "description": "u128" },
+          "q": { "type": "integer", "description": "u128" },
+          "e": { "type": "integer", "description": "u128" },
+          "ciphertext": { "type": "integer", "description": "u128" }
+        },
+        "example": { "p": 61, "q": 53, "e": 17, "ciphertext": 2790 },
+        "required": ["p", "q", "e", "ciphertext"]
+      },
+      "RsaDecryptResponse": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "integer", "description": "u128" }
+        },
+        "example": { "message": 65 },
+        "required": ["message"]
+      },
+      "ElGamalEncryptRequest": {
+        "type": "object",
+        "properties": {
+          "p": { "type": "integer", "description": "u128" },
+          "g": { "type": "integer", "description": "u128" },
+          "private_key": { "type": "integer", "description": "u128" },
+          "message": { "type": "integer", "description": "u128" },
+          "ephemeral_key": { "type": "integer", "description": "u128" }
+        },
+        "example": { "p": 23, "g": 5, "private_key": 6, "message": 10, "ephemeral_key": 7 },
+        "required": ["p", "g", "private_key", "message", "ephemeral_key"]
+      },
+      "ElGamalEncryptResponse": {
+        "type": "object",
+        "properties": {
+          "public_key": { "type": "integer", "description": "u128" },
+          "c1": { "type": "integer", "description": "u128" },
+          "c2": { "type": "integer", "description": "u128" }
+        },
+        "example": { "public_key": 8, "c1": 17, "c2": 19 },
+        "required": ["public_key", "c1", "c2"]
+      },
+      "ElGamalDecryptRequest": {
+        "type": "object",
+        "properties": {
+          "p": { "type": "integer", "description": "u128" },
+          "g": { "type": "integer", "description": "u128" },
+          "private_key": { "type": "integer", "description": "u128" },
+          "c1": { "type": "integer", "description": "u128" },
+          "c2": { "type": "integer", "description": "u128" }
+        },
+        "example": { "p": 23, "g": 5, "private_key": 6, "c1": 17, "c2": 19 },
+        "required": ["p", "g", "private_key", "c1", "c2"]
+      },
+      "ElGamalDecryptResponse": {
+        "type": "object",
+        "properties": {
+          "message": { "type": "integer", "description": "u128" }
+        },
+        "example": { "message": 10 },
+        "required": ["message"]
+      },
+      "CaesarRequest": {
+        "type": "object",
+        "properties": {
+          "text": { "type": "string" },
+          "shift": { "type": "integer" }
+        },
+        "example": { "text": "Abc-xyz!", "shift": 2 },
+        "required": ["text", "shift"]
+      },
+      "VigenereEncryptRequest": {
+        "type": "object",
+        "properties": {
+          "text": { "type": "string" },
+          "key": { "type": "string" }
+        },
+        "example": { "text": "ATTACKATDAWN", "key": "LEMON" },
+        "required": ["text", "key"]
+      },
+      "AffineRequest": {
+        "type": "object",
+        "properties": {
+          "text": { "type": "string" },
+          "a": { "type": "integer" },
+          "b": { "type": "integer" }
+        },
+        "example": { "text": "AFFINE CIPHER", "a": 5, "b": 8 },
+        "required": ["text", "a", "b"]
+      },
+      "PlayfairRequest": {
+        "type": "object",
+        "properties": {
+          "text": { "type": "string" },
+          "key": { "type": "string" }
+        },
+        "example": { "text": "HIDE THE GOLD", "key": "PLAYFAIR EXAMPLE" },
+        "required": ["text", "key"]
+      },
+      "OtpEncryptRequest": {
+        "type": "object",
+        "properties": {
+          "plaintext_base64": { "$ref": "#/components/schemas/Base64" },
+          "key_base64": { "$ref": "#/components/schemas/Base64" }
+        },
+        "example": {
+          "plaintext_base64": "SGVsbG8=",
+          "key_base64": "AQIDBAU="
+        },
+        "required": ["plaintext_base64", "key_base64"]
+      },
+      "OtpDecryptRequest": {
+        "type": "object",
+        "properties": {
+          "ciphertext_base64": { "$ref": "#/components/schemas/Base64" },
+          "key_base64": { "$ref": "#/components/schemas/Base64" }
+        },
+        "example": {
+          "ciphertext_base64": "QkRGQkY=",
+          "key_base64": "AQIDBAU="
+        },
+        "required": ["ciphertext_base64", "key_base64"]
+      },
+      "OtpResponse": {
+        "type": "object",
+        "properties": {
+          "result_base64": { "$ref": "#/components/schemas/Base64" }
+        },
+        "example": { "result_base64": "SGVsbG8=" },
+        "required": ["result_base64"]
+      },
+      "HillEncryptRequest": {
+        "type": "object",
+        "properties": {
+          "text": { "type": "string" },
+          "key": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "items": { "type": "integer" }
+            }
+          }
+        },
+        "example": { "text": "HELP", "key": [[3, 3], [2, 5]] },
+        "required": ["text", "key"]
+      },
+      "FrequencyAnalysisRequest": {
+        "type": "object",
+        "properties": {
+          "text": { "type": "string" }
+        },
+        "example": { "text": "ABBA" },
+        "required": ["text"]
+      },
+      "LetterFrequencyResponse": {
+        "type": "object",
+        "properties": {
+          "letter": { "type": "string" },
+          "count": { "type": "integer" },
+          "frequency": { "type": "number" }
+        },
+        "example": { "letter": "A", "count": 2, "frequency": 0.5 },
+        "required": ["letter", "count", "frequency"]
+      },
+      "FrequencyAnalysisResponse": {
+        "type": "object",
+        "properties": {
+          "total_letters": { "type": "integer" },
+          "frequencies": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/LetterFrequencyResponse" }
+          }
+        },
+        "example": {
+          "total_letters": 4,
+          "frequencies": [
+            { "letter": "A", "count": 2, "frequency": 0.5 },
+            { "letter": "B", "count": 2, "frequency": 0.5 }
+          ]
+        },
+        "required": ["total_letters", "frequencies"]
+      },
+      "IndexCoincidenceRequest": {
+        "type": "object",
+        "properties": {
+          "text": { "type": "string" }
+        },
+        "example": { "text": "ABBA" },
+        "required": ["text"]
+      },
+      "IndexCoincidenceResponse": {
+        "type": "object",
+        "properties": {
+          "total_letters": { "type": "integer" },
+          "index": { "type": "number" }
+        },
+        "example": { "total_letters": 4, "index": 0.3333 },
+        "required": ["total_letters", "index"]
+      },
+      "TextResultResponse": {
+        "type": "object",
+        "properties": {
+          "result": { "type": "string" }
+        },
+        "example": { "result": "Cde-zab!" },
+        "required": ["result"]
+      },
+      "CaesarBruteforceRequest": {
+        "type": "object",
+        "properties": {
+          "text": { "type": "string" }
+        },
+        "example": { "text": "erqmrxu" },
+        "required": ["text"]
+      },
+      "CaesarBruteforceCandidateResponse": {
+        "type": "object",
+        "properties": {
+          "shift": { "type": "integer" },
+          "plaintext": { "type": "string" },
+          "score": { "type": "integer" }
+        },
+        "example": { "shift": 3, "plaintext": "bonjour", "score": 42 },
+        "required": ["shift", "plaintext", "score"]
+      },
+      "CaesarBruteforceResponse": {
+        "type": "object",
+        "properties": {
+          "best_shift": { "type": "integer", "nullable": true },
+          "best_plaintext": { "type": "string", "nullable": true },
+          "candidates": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/CaesarBruteforceCandidateResponse" }
+          }
+        },
+        "example": {
+          "best_shift": 3,
+          "best_plaintext": "bonjour",
+          "candidates": [
+            { "shift": 3, "plaintext": "bonjour", "score": 42 }
+          ]
+        },
+        "required": ["best_shift", "best_plaintext", "candidates"]
+      },
+      "KasiskiRequest": {
+        "type": "object",
+        "properties": {
+          "text": { "type": "string" },
+          "sequence_len": { "type": "integer" },
+          "max_key_len": { "type": "integer" }
+        },
+        "example": { "text": "ABCXYZABCXYZ", "sequence_len": 3, "max_key_len": 12 },
+        "required": ["text"]
+      },
+      "KasiskiCandidateResponse": {
+        "type": "object",
+        "properties": {
+          "key_length": { "type": "integer" },
+          "score": { "type": "integer" }
+        },
+        "example": { "key_length": 6, "score": 4 },
+        "required": ["key_length", "score"]
+      },
+      "KasiskiResponse": {
+        "type": "object",
+        "properties": {
+          "distances": { "type": "array", "items": { "type": "integer" } },
+          "gcd": { "type": "integer", "nullable": true },
+          "candidates": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/KasiskiCandidateResponse" }
+          }
+        },
+        "example": {
+          "distances": [6, 6],
+          "gcd": 6,
+          "candidates": [{ "key_length": 6, "score": 2 }]
+        },
+        "required": ["distances", "gcd", "candidates"]
+      },
+      "VigenereKeyLengthRequest": {
+        "type": "object",
+        "properties": {
+          "text": { "type": "string" },
+          "max_length": { "type": "integer" }
+        },
+        "example": { "text": "QPWKALQPWKAL", "max_length": 6 },
+        "required": ["text", "max_length"]
+      },
+      "VigenereKeyLengthResponse": {
+        "type": "object",
+        "properties": {
+          "length": { "type": "integer" },
+          "average_ic": { "type": "number" }
+        },
+        "example": { "length": 3, "average_ic": 0.12 },
+        "required": ["length", "average_ic"]
+      },
+      "VigenereKeyLengthListResponse": {
+        "type": "object",
+        "properties": {
+          "candidates": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/VigenereKeyLengthResponse" }
+          }
+        },
+        "example": {
+          "candidates": [
+            { "length": 3, "average_ic": 0.12 },
+            { "length": 6, "average_ic": 0.08 }
+          ]
+        },
+        "required": ["candidates"]
+      },
+      "VigenereEstimateKeyRequest": {
+        "type": "object",
+        "properties": {
+          "text": { "type": "string" },
+          "key_length": { "type": "integer" }
+        },
+        "example": { "text": "QPWKALQPWKAL", "key_length": 3 },
+        "required": ["text", "key_length"]
+      },
+      "VigenereEstimateKeyResponse": {
+        "type": "object",
+        "properties": {
+          "key": { "type": "string" }
+        },
+        "example": { "key": "ABC" },
+        "required": ["key"]
+      },
+      "Rc4EncryptRequest": {
+        "type": "object",
+        "properties": {
+          "plaintext": { "type": "string" },
+          "key": { "type": "string" }
+        },
+        "example": { "plaintext": "hello", "key": "secret" },
+        "required": ["plaintext", "key"]
+      },
+      "Rc4DecryptRequest": {
+        "type": "object",
+        "properties": {
+          "ciphertext_hex": { "type": "string" },
+          "key": { "type": "string" }
+        },
+        "example": { "ciphertext_hex": "0a1b2c", "key": "secret" },
+        "required": ["ciphertext_hex", "key"]
+      },
+      "BlockCipherEncryptRequest": {
+        "type": "object",
+        "properties": {
+          "plaintext": { "type": "string" },
+          "key": { "type": "string" },
+          "iv": { "type": "string" }
+        },
+        "example": { "plaintext": "hello", "key": "0123456789abcdef", "iv": "abcdef9876543210" },
+        "required": ["plaintext", "key", "iv"]
+      },
+      "BlockCipherDecryptRequest": {
+        "type": "object",
+        "properties": {
+          "ciphertext_hex": { "type": "string" },
+          "key": { "type": "string" },
+          "iv": { "type": "string" }
+        },
+        "example": { "ciphertext_hex": "9f86d081", "key": "0123456789abcdef", "iv": "abcdef9876543210" },
+        "required": ["ciphertext_hex", "key", "iv"]
+      },
+      "Rc4EncryptResponse": {
+        "type": "object",
+        "properties": {
+          "ciphertext_hex": { "type": "string" },
+          "keystream_hex": { "type": "string" }
+        },
+        "example": { "ciphertext_hex": "0a1b2c", "keystream_hex": "001122" },
+        "required": ["ciphertext_hex", "keystream_hex"]
+      },
+      "DesEncryptResponse": {
+        "type": "object",
+        "properties": {
+          "ciphertext_hex": { "type": "string" },
+          "iv_hex": { "type": "string" }
+        },
+        "example": { "ciphertext_hex": "aabbcc", "iv_hex": "112233" },
+        "required": ["ciphertext_hex", "iv_hex"]
+      },
+      "AesEncryptResponse": {
+        "type": "object",
+        "properties": {
+          "ciphertext_hex": { "type": "string" },
+          "iv_hex": { "type": "string" },
+          "key_size": { "type": "string" }
+        },
+        "example": { "ciphertext_hex": "aabbcc", "iv_hex": "112233", "key_size": "AES-128" },
+        "required": ["ciphertext_hex", "iv_hex", "key_size"]
+      },
+      "PlaintextResponse": {
+        "type": "object",
+        "properties": {
+          "result": { "type": "string" }
+        },
+        "example": { "result": "hello" },
+        "required": ["result"]
+      },
+      "RsaSignatureRequest": {
+        "type": "object",
+        "properties": {
+          "p": { "type": "integer", "description": "u128" },
+          "q": { "type": "integer", "description": "u128" },
+          "e": { "type": "integer", "description": "u128" },
+          "message": { "type": "string" }
+        },
+        "example": { "p": 61, "q": 53, "e": 17, "message": "hello" },
+        "required": ["p", "q", "e", "message"]
+      },
+      "RsaVerifyRequest": {
+        "type": "object",
+        "properties": {
+          "p": { "type": "integer", "description": "u128" },
+          "q": { "type": "integer", "description": "u128" },
+          "e": { "type": "integer", "description": "u128" },
+          "message": { "type": "string" },
+          "signature": { "type": "integer", "description": "u128" }
+        },
+        "example": { "p": 61, "q": 53, "e": 17, "message": "hello", "signature": 2790 },
+        "required": ["p", "q", "e", "message", "signature"]
+      },
+      "RsaSignatureResponse": {
+        "type": "object",
+        "properties": {
+          "signature": { "type": "integer", "description": "u128" }
+        },
+        "example": { "signature": 2790 },
+        "required": ["signature"]
+      },
+      "DsaSignRequest": {
+        "type": "object",
+        "properties": {
+          "p": { "type": "integer", "description": "u128" },
+          "q": { "type": "integer", "description": "u128" },
+          "g": { "type": "integer", "description": "u128" },
+          "private_key": { "type": "integer", "description": "u128" },
+          "message": { "type": "string" },
+          "ephemeral_key": { "type": "integer", "description": "u128" }
+        },
+        "example": { "p": 23, "q": 11, "g": 4, "private_key": 3, "message": "hello", "ephemeral_key": 7 },
+        "required": ["p", "q", "g", "private_key", "message", "ephemeral_key"]
+      },
+      "DsaVerifyRequest": {
+        "type": "object",
+        "properties": {
+          "p": { "type": "integer", "description": "u128" },
+          "q": { "type": "integer", "description": "u128" },
+          "g": { "type": "integer", "description": "u128" },
+          "public_key": { "type": "integer", "description": "u128" },
+          "message": { "type": "string" },
+          "r": { "type": "integer", "description": "u128" },
+          "s": { "type": "integer", "description": "u128" }
+        },
+        "example": { "p": 23, "q": 11, "g": 4, "public_key": 8, "message": "hello", "r": 3, "s": 4 },
+        "required": ["p", "q", "g", "public_key", "message", "r", "s"]
+      },
+      "PairSignatureResponse": {
+        "type": "object",
+        "properties": {
+          "r": { "type": "integer", "description": "u128" },
+          "s": { "type": "integer", "description": "u128" }
+        },
+        "example": { "r": 3, "s": 4 },
+        "required": ["r", "s"]
+      },
+      "EcdsaSignRequest": {
+        "type": "object",
+        "properties": {
+          "private_key": { "type": "integer", "description": "u128" },
+          "message": { "type": "string" },
+          "ephemeral_key": { "type": "integer", "description": "u128" }
+        },
+        "example": { "private_key": 7, "message": "hello", "ephemeral_key": 3 },
+        "required": ["private_key", "message", "ephemeral_key"]
+      },
+      "EcdsaVerifyRequest": {
+        "type": "object",
+        "properties": {
+          "public_key_x": { "type": "integer", "description": "u128" },
+          "public_key_y": { "type": "integer", "description": "u128" },
+          "message": { "type": "string" },
+          "r": { "type": "integer", "description": "u128" },
+          "s": { "type": "integer", "description": "u128" }
+        },
+        "example": { "public_key_x": 0, "public_key_y": 6, "message": "hello", "r": 3, "s": 4 },
+        "required": ["public_key_x", "public_key_y", "message", "r", "s"]
+      },
+      "ElGamalSignRequest": {
+        "type": "object",
+        "properties": {
+          "p": { "type": "integer", "description": "u128" },
+          "g": { "type": "integer", "description": "u128" },
+          "private_key": { "type": "integer", "description": "u128" },
+          "message": { "type": "string" },
+          "ephemeral_key": { "type": "integer", "description": "u128" }
+        },
+        "example": { "p": 23, "g": 5, "private_key": 6, "message": "hello", "ephemeral_key": 7 },
+        "required": ["p", "g", "private_key", "message", "ephemeral_key"]
+      },
+      "ElGamalVerifyRequest": {
+        "type": "object",
+        "properties": {
+          "p": { "type": "integer", "description": "u128" },
+          "g": { "type": "integer", "description": "u128" },
+          "public_key": { "type": "integer", "description": "u128" },
+          "message": { "type": "string" },
+          "r": { "type": "integer", "description": "u128" },
+          "s": { "type": "integer", "description": "u128" }
+        },
+        "example": { "p": 23, "g": 5, "public_key": 8, "message": "hello", "r": 3, "s": 4 },
+        "required": ["p", "g", "public_key", "message", "r", "s"]
+      },
+      "HashTextRequest": {
+        "type": "object",
+        "properties": {
+          "text": { "type": "string" }
+        },
+        "example": { "text": "abc" },
+        "required": ["text"]
+      },
+      "HmacRequest": {
+        "type": "object",
+        "properties": {
+          "text": { "type": "string" },
+          "key": { "type": "string" }
+        },
+        "example": { "text": "message", "key": "secret" },
+        "required": ["text", "key"]
+      },
+      "DigestResponse": {
+        "type": "object",
+        "properties": {
+          "digest": { "type": "string" }
+        },
+        "example": { "digest": "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad" },
+        "required": ["digest"]
+      },
+      "SecureChannelSendRequest": {
+        "type": "object",
+        "properties": {
+          "p": { "type": "integer", "description": "u128" },
+          "g": { "type": "integer", "description": "u128" },
+          "sender_private": { "type": "integer", "description": "u128" },
+          "receiver_public": { "type": "integer", "description": "u128" },
+          "sender_public": { "type": "integer", "description": "u128" },
+          "iv": { "type": "string" },
+          "plaintext": { "type": "string" }
+        },
+        "example": {
+          "p": 23,
+          "g": 5,
+          "sender_private": 6,
+          "receiver_public": 19,
+          "sender_public": 8,
+          "iv": "INITVECTOR123456",
+          "plaintext": "bonjour"
+        },
+        "required": [
+          "p",
+          "g",
+          "sender_private",
+          "receiver_public",
+          "sender_public",
+          "iv",
+          "plaintext"
+        ]
+      },
+      "SecureChannelSendResponse": {
+        "type": "object",
+        "properties": {
+          "sender_public_key": { "type": "integer", "description": "u128" },
+          "iv_hex": { "type": "string" },
+          "ciphertext_hex": { "type": "string" },
+          "mac_hex": { "type": "string" }
+        },
+        "example": {
+          "sender_public_key": 8,
+          "iv_hex": "494e4954564543544f52313233343536",
+          "ciphertext_hex": "deadbeef",
+          "mac_hex": "0123456789abcdef"
+        },
+        "required": ["sender_public_key", "iv_hex", "ciphertext_hex", "mac_hex"]
+      },
+      "SecureChannelOpenRequest": {
+        "type": "object",
+        "properties": {
+          "p": { "type": "integer", "description": "u128" },
+          "g": { "type": "integer", "description": "u128" },
+          "receiver_private": { "type": "integer", "description": "u128" },
+          "sender_public": { "type": "integer", "description": "u128" },
+          "iv_hex": { "type": "string" },
+          "ciphertext_hex": { "type": "string" },
+          "mac_hex": { "type": "string" }
+        },
+        "example": {
+          "p": 23,
+          "g": 5,
+          "receiver_private": 15,
+          "sender_public": 8,
+          "iv_hex": "494e4954564543544f52313233343536",
+          "ciphertext_hex": "deadbeef",
+          "mac_hex": "0123456789abcdef"
+        },
+        "required": [
+          "p",
+          "g",
+          "receiver_private",
+          "sender_public",
+          "iv_hex",
+          "ciphertext_hex",
+          "mac_hex"
+        ]
+      },
+      "SecureChannelOpenResponse": {
+        "type": "object",
+        "properties": {
+          "plaintext": { "type": "string" }
+        },
+        "example": { "plaintext": "bonjour" },
+        "required": ["plaintext"]
+      },
+      "SignBallotRequest": {
+        "type": "object",
+        "properties": {
+          "voter_id": { "type": "string" },
+          "candidate": { "type": "string" }
+        },
+        "example": { "voter_id": "alice", "candidate": "A" },
+        "required": ["voter_id", "candidate"]
+      },
+      "SignBallotResponse": {
+        "type": "object",
+        "properties": {
+          "voter_id": { "type": "string" },
+          "candidate": { "type": "string" },
+          "signature": { "type": "integer", "description": "u128" }
+        },
+        "example": { "voter_id": "alice", "candidate": "A", "signature": 12345 },
+        "required": ["voter_id", "candidate", "signature"]
+      },
+      "SignedBallotInput": {
+        "type": "object",
+        "properties": {
+          "voter_id": { "type": "string" },
+          "candidate": { "type": "string" },
+          "signature": { "type": "integer", "description": "u128" }
+        },
+        "example": { "voter_id": "alice", "candidate": "A", "signature": 12345 },
+        "required": ["voter_id", "candidate", "signature"]
+      },
+      "TallyVotesRequest": {
+        "type": "object",
+        "properties": {
+          "ballots": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/SignedBallotInput" }
+          }
+        },
+        "example": {
+          "ballots": [
+            { "voter_id": "alice", "candidate": "A", "signature": 12345 },
+            { "voter_id": "bob", "candidate": "B", "signature": 67890 }
+          ]
+        },
+        "required": ["ballots"]
+      },
+      "CandidateTally": {
+        "type": "object",
+        "properties": {
+          "candidate": { "type": "string" },
+          "votes": { "type": "integer" }
+        },
+        "example": { "candidate": "A", "votes": 1 },
+        "required": ["candidate", "votes"]
+      },
+      "TallyVotesResponse": {
+        "type": "object",
+        "properties": {
+          "results": { "type": "array", "items": { "$ref": "#/components/schemas/CandidateTally" } }
+        },
+        "example": {
+          "results": [
+            { "candidate": "A", "votes": 1 },
+            { "candidate": "B", "votes": 1 }
+          ]
+        },
+        "required": ["results"]
+      }
+    }
+  },
+  "security": [
+    { "ApiKeyAuth": [] }
+  ],
+  "paths": {
+    "/crypto/keys/x25519": {
+      "post": {
+        "summary": "Generate X25519 key pair",
+        "responses": {
+          "200": {
+            "description": "Key pair",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/X25519KeyPairResponse" } } }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/crypto/keys/ed25519": {
+      "post": {
+        "summary": "Generate Ed25519 key pair",
+        "responses": {
+          "200": {
+            "description": "Key pair",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Ed25519KeyPairResponse" } } }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/crypto/keys/rsa": {
+      "post": {
+        "summary": "Generate RSA key pair",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RsaKeyGenRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Key pair",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RsaKeyPairResponse" } } }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/crypto/secure-channel/encrypt": {
+      "post": {
+        "summary": "Encrypt with X25519 + HKDF + AES-GCM",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SecureChannelEncryptRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Encrypted",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SecureChannelEncryptResponse" } } }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "413": {
+            "description": "Payload too large",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/crypto/secure-channel/decrypt": {
+      "post": {
+        "summary": "Decrypt with X25519 + HKDF + AES-GCM",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SecureChannelDecryptRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Decrypted",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SecureChannelDecryptResponse" } } }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "413": {
+            "description": "Payload too large",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/crypto/rsa/oaep/encrypt": {
+      "post": {
+        "summary": "RSA-OAEP encrypt",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RsaOaepEncryptRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Encrypted",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RsaOaepEncryptResponse" } } }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "413": {
+            "description": "Payload too large",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/crypto/rsa/oaep/decrypt": {
+      "post": {
+        "summary": "RSA-OAEP decrypt",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RsaOaepDecryptRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Decrypted",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RsaOaepDecryptResponse" } } }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "413": {
+            "description": "Payload too large",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/crypto/ed25519/sign": {
+      "post": {
+        "summary": "Ed25519 sign",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Ed25519SignRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Signature",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Ed25519SignResponse" } } }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "413": {
+            "description": "Payload too large",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/crypto/ed25519/verify": {
+      "post": {
+        "summary": "Ed25519 verify",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Ed25519VerifyRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Verification",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/VerifyResponse" } } }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "413": {
+            "description": "Payload too large",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/crypto/rsa/pss/sign": {
+      "post": {
+        "summary": "RSA-PSS sign",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RsaPssSignRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Signature",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RsaPssSignResponse" } } }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "413": {
+            "description": "Payload too large",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/crypto/rsa/pss/verify": {
+      "post": {
+        "summary": "RSA-PSS verify",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RsaPssVerifyRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Verification",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/VerifyResponse" } } }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "413": {
+            "description": "Payload too large",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "Service status",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HealthResponse" } } }
+          }
+        }
+      }
+    },
+    "/asymmetric/dh/exchange": {
+      "post": {
+        "summary": "Diffie-Hellman key exchange (educational)",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DiffieHellmanExchangeRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Exchange result",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DiffieHellmanExchangeResponse" } } }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/asymmetric/rsa/encrypt": {
+      "post": {
+        "summary": "RSA encrypt (educational)",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RsaEncryptRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Ciphertext",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RsaEncryptResponse" } } }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/asymmetric/rsa/decrypt": {
+      "post": {
+        "summary": "RSA decrypt (educational)",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RsaDecryptRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Plaintext",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RsaDecryptResponse" } } }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/asymmetric/elgamal/encrypt": {
+      "post": {
+        "summary": "ElGamal encrypt (educational)",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ElGamalEncryptRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Ciphertext",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ElGamalEncryptResponse" } } }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/asymmetric/elgamal/decrypt": {
+      "post": {
+        "summary": "ElGamal decrypt (educational)",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ElGamalDecryptRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Plaintext",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ElGamalDecryptResponse" } } }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/classic/caesar/encrypt": {
+      "post": {
+        "summary": "Caesar encrypt",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CaesarRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Result", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TextResultResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/classic/caesar/decrypt": {
+      "post": {
+        "summary": "Caesar decrypt",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CaesarRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Result", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TextResultResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/classic/caesar/bruteforce": {
+      "post": {
+        "summary": "Caesar brute force",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CaesarBruteforceRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Candidates", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CaesarBruteforceResponse" } } } }
+        }
+      }
+    },
+    "/classic/vigenere/encrypt": {
+      "post": {
+        "summary": "Vigenere encrypt",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/VigenereEncryptRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Result", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TextResultResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/classic/vigenere/decrypt": {
+      "post": {
+        "summary": "Vigenere decrypt",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/VigenereEncryptRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Result", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TextResultResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/classic/hill/encrypt": {
+      "post": {
+        "summary": "Hill encrypt",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HillEncryptRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Result", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TextResultResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/classic/hill/decrypt": {
+      "post": {
+        "summary": "Hill decrypt",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HillEncryptRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Result", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TextResultResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/classic/affine/encrypt": {
+      "post": {
+        "summary": "Affine encrypt",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AffineRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Result", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TextResultResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/classic/affine/decrypt": {
+      "post": {
+        "summary": "Affine decrypt",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AffineRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Result", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TextResultResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/classic/playfair/encrypt": {
+      "post": {
+        "summary": "Playfair encrypt",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PlayfairRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Result", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TextResultResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/classic/playfair/decrypt": {
+      "post": {
+        "summary": "Playfair decrypt",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PlayfairRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Result", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TextResultResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/classic/otp/encrypt": {
+      "post": {
+        "summary": "OTP encrypt",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/OtpEncryptRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Result", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/OtpResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/classic/otp/decrypt": {
+      "post": {
+        "summary": "OTP decrypt",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/OtpDecryptRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Result", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/OtpResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/classic/analysis/frequency": {
+      "post": {
+        "summary": "Frequency analysis",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FrequencyAnalysisRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Frequencies", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FrequencyAnalysisResponse" } } } }
+        }
+      }
+    },
+    "/classic/analysis/index-coincidence": {
+      "post": {
+        "summary": "Index of coincidence",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/IndexCoincidenceRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Index", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/IndexCoincidenceResponse" } } } }
+        }
+      }
+    },
+    "/classic/analysis/kasiski": {
+      "post": {
+        "summary": "Kasiski test",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/KasiskiRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Candidates", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/KasiskiResponse" } } } }
+        }
+      }
+    },
+    "/classic/analysis/vigenere/key-length": {
+      "post": {
+        "summary": "Vigenere key length (IC)",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/VigenereKeyLengthRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Candidates", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/VigenereKeyLengthListResponse" } } } }
+        }
+      }
+    },
+    "/classic/analysis/vigenere/estimate-key": {
+      "post": {
+        "summary": "Vigenere key estimation",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/VigenereEstimateKeyRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Estimated key", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/VigenereEstimateKeyResponse" } } } }
+        }
+      }
+    },
+    "/hash/md5": {
+      "post": {
+        "summary": "MD5 hash",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HashTextRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Digest", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DigestResponse" } } } }
+        }
+      }
+    },
+    "/hash/sha256": {
+      "post": {
+        "summary": "SHA-256 hash",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HashTextRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Digest", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DigestResponse" } } } }
+        }
+      }
+    },
+    "/hash/sha512": {
+      "post": {
+        "summary": "SHA-512 hash",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HashTextRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Digest", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DigestResponse" } } } }
+        }
+      }
+    },
+    "/hash/hmac": {
+      "post": {
+        "summary": "HMAC-SHA256",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HmacRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Digest", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DigestResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/signature/rsa/sign": {
+      "post": {
+        "summary": "RSA signature (educational)",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RsaSignatureRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Signature", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RsaSignatureResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/signature/rsa/verify": {
+      "post": {
+        "summary": "RSA verify (educational)",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RsaVerifyRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Verification", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/VerifyResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/signature/rsa/pkcs1v15/sign": {
+      "post": {
+        "summary": "RSA PKCS#1 v1.5 sign (educational)",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RsaSignatureRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Signature", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RsaSignatureResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/signature/rsa/pkcs1v15/verify": {
+      "post": {
+        "summary": "RSA PKCS#1 v1.5 verify (educational)",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RsaVerifyRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Verification", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/VerifyResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/signature/dsa/sign": {
+      "post": {
+        "summary": "DSA sign (educational)",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DsaSignRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Signature", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PairSignatureResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/signature/dsa/verify": {
+      "post": {
+        "summary": "DSA verify (educational)",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DsaVerifyRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Verification", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/VerifyResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/signature/ecdsa/sign": {
+      "post": {
+        "summary": "ECDSA sign (educational)",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EcdsaSignRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Signature", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PairSignatureResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/signature/ecdsa/verify": {
+      "post": {
+        "summary": "ECDSA verify (educational)",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EcdsaVerifyRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Verification", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/VerifyResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/signature/elgamal/sign": {
+      "post": {
+        "summary": "ElGamal sign (educational)",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ElGamalSignRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Signature", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PairSignatureResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/signature/elgamal/verify": {
+      "post": {
+        "summary": "ElGamal verify (educational)",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ElGamalVerifyRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Verification", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/VerifyResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/symmetric/rc4/encrypt": {
+      "post": {
+        "summary": "RC4 encrypt",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Rc4EncryptRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Ciphertext", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Rc4EncryptResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/symmetric/rc4/decrypt": {
+      "post": {
+        "summary": "RC4 decrypt",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Rc4DecryptRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Plaintext", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PlaintextResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/symmetric/des/encrypt": {
+      "post": {
+        "summary": "DES encrypt",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BlockCipherEncryptRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Ciphertext", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/DesEncryptResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/symmetric/des/decrypt": {
+      "post": {
+        "summary": "DES decrypt",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BlockCipherDecryptRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Plaintext", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PlaintextResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/symmetric/aes/encrypt": {
+      "post": {
+        "summary": "AES encrypt",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BlockCipherEncryptRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Ciphertext", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AesEncryptResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/symmetric/aes/decrypt": {
+      "post": {
+        "summary": "AES decrypt",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BlockCipherDecryptRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Plaintext", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PlaintextResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/comms/secure-channel/send": {
+      "post": {
+        "summary": "Secure channel send (educational)",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SecureChannelSendRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Packet", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SecureChannelSendResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/comms/secure-channel/open": {
+      "post": {
+        "summary": "Secure channel open (educational)",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SecureChannelOpenRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Plaintext", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SecureChannelOpenResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/comms/voting/sign-ballot": {
+      "post": {
+        "summary": "Sign ballot (demo)",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SignBallotRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Signed ballot", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SignBallotResponse" } } } }
+        }
+      }
+    },
+    "/comms/voting/tally": {
+      "post": {
+        "summary": "Tally votes (demo)",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TallyVotesRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Tally", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/TallyVotesResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/ws/secure": {
+      "get": {
+        "summary": "WebSocket secure chat",
+        "description": "Upgrade to WebSocket. Query params: room, name, api_key",
+        "responses": {
+          "101": { "description": "Switching Protocols" },
+          "400": { "description": "Bad request" },
+          "401": { "description": "Unauthorized" }
+        }
+      }
+    }
+    }
+  }
+}
