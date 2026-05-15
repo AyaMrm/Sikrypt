@@ -1,0 +1,13 @@
+# Rust
+/backend/target/
+
+# Node
+/front/node_modules/
+/front/dist/
+
+# Env files
+**/.env
+
+# OS
+.DS_Store
+Thumbs.db
