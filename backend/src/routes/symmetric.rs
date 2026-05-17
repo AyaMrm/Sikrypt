@@ -4,12 +4,14 @@ use crate::{
     algorithms::symmetric::{
         aes::{self, AesError, AesKeySize},
         des::{self, DesError},
+        finalists::{self, FinalistError, FinalistKeySize},
         rc4::{self, Rc4Error},
     },
     errors::ApiError,
     models::symmetric::{
         AesEncryptResponse, BlockCipherDecryptRequest, BlockCipherEncryptRequest, DesEncryptResponse,
-        PlaintextResponse, Rc4DecryptRequest, Rc4EncryptRequest, Rc4EncryptResponse,
+        FinalistEncryptResponse, PlaintextResponse, Rc4DecryptRequest, Rc4EncryptRequest,
+        Rc4EncryptResponse,
     },
 };
 
@@ -100,11 +102,39 @@ fn map_aes_error(error: AesError) -> ApiError {
     }
 }
 
+fn map_finalist_error(error: FinalistError) -> ApiError {
+    match error {
+        FinalistError::InvalidKeyLength => ApiError::new(
+            StatusCode::BAD_REQUEST,
+            "invalid_key_length",
+            "Cipher requires a 16, 24, or 32-byte key (RC6: 16 bytes only)",
+        ),
+        FinalistError::InvalidIvLength => ApiError::new(
+            StatusCode::BAD_REQUEST,
+            "invalid_iv_length",
+            "Cipher requires a 16-byte IV",
+        ),
+        FinalistError::DecryptionFailed => ApiError::new(
+            StatusCode::BAD_REQUEST,
+            "decryption_failed",
+            "Decryption failed",
+        ),
+    }
+}
+
 fn key_size_label(key_size: AesKeySize) -> String {
     match key_size {
         AesKeySize::Bits128 => "AES-128".to_string(),
         AesKeySize::Bits192 => "AES-192".to_string(),
         AesKeySize::Bits256 => "AES-256".to_string(),
+    }
+}
+
+fn finalist_key_size_label(key_size: FinalistKeySize) -> String {
+    match key_size {
+        FinalistKeySize::Bits128 => "128-bit".to_string(),
+        FinalistKeySize::Bits192 => "192-bit".to_string(),
+        FinalistKeySize::Bits256 => "256-bit".to_string(),
     }
 }
 
@@ -211,6 +241,158 @@ async fn aes_decrypt(
     Ok(Json(PlaintextResponse { result }))
 }
 
+async fn twofish_encrypt(
+    Json(payload): Json<BlockCipherEncryptRequest>,
+) -> Result<Json<FinalistEncryptResponse>, ApiError> {
+    let output = finalists::twofish_encrypt_cbc(
+        payload.key.as_bytes(),
+        payload.iv.as_bytes(),
+        payload.plaintext.as_bytes(),
+    )
+    .map_err(map_finalist_error)?;
+
+    Ok(Json(FinalistEncryptResponse {
+        ciphertext_hex: to_hex(&output.ciphertext),
+        iv_hex: to_hex(&output.iv),
+        key_size: finalist_key_size_label(output.key_size),
+    }))
+}
+
+async fn twofish_decrypt(
+    Json(payload): Json<BlockCipherDecryptRequest>,
+) -> Result<Json<PlaintextResponse>, ApiError> {
+    let ciphertext = from_hex(&payload.ciphertext_hex)?;
+    let plaintext = finalists::twofish_decrypt_cbc(
+        payload.key.as_bytes(),
+        payload.iv.as_bytes(),
+        &ciphertext,
+    )
+    .map_err(map_finalist_error)?;
+    let result = String::from_utf8(plaintext).map_err(|_| {
+        ApiError::new(
+            StatusCode::BAD_REQUEST,
+            "invalid_plaintext",
+            "The decrypted output is not valid UTF-8 text",
+        )
+    })?;
+
+    Ok(Json(PlaintextResponse { result }))
+}
+
+async fn serpent_encrypt(
+    Json(payload): Json<BlockCipherEncryptRequest>,
+) -> Result<Json<FinalistEncryptResponse>, ApiError> {
+    let output = finalists::serpent_encrypt_cbc(
+        payload.key.as_bytes(),
+        payload.iv.as_bytes(),
+        payload.plaintext.as_bytes(),
+    )
+    .map_err(map_finalist_error)?;
+
+    Ok(Json(FinalistEncryptResponse {
+        ciphertext_hex: to_hex(&output.ciphertext),
+        iv_hex: to_hex(&output.iv),
+        key_size: finalist_key_size_label(output.key_size),
+    }))
+}
+
+async fn serpent_decrypt(
+    Json(payload): Json<BlockCipherDecryptRequest>,
+) -> Result<Json<PlaintextResponse>, ApiError> {
+    let ciphertext = from_hex(&payload.ciphertext_hex)?;
+    let plaintext = finalists::serpent_decrypt_cbc(
+        payload.key.as_bytes(),
+        payload.iv.as_bytes(),
+        &ciphertext,
+    )
+    .map_err(map_finalist_error)?;
+    let result = String::from_utf8(plaintext).map_err(|_| {
+        ApiError::new(
+            StatusCode::BAD_REQUEST,
+            "invalid_plaintext",
+            "The decrypted output is not valid UTF-8 text",
+        )
+    })?;
+
+    Ok(Json(PlaintextResponse { result }))
+}
+
+async fn rc6_encrypt(
+    Json(payload): Json<BlockCipherEncryptRequest>,
+) -> Result<Json<FinalistEncryptResponse>, ApiError> {
+    let output = finalists::rc6_encrypt_cbc(
+        payload.key.as_bytes(),
+        payload.iv.as_bytes(),
+        payload.plaintext.as_bytes(),
+    )
+    .map_err(map_finalist_error)?;
+
+    Ok(Json(FinalistEncryptResponse {
+        ciphertext_hex: to_hex(&output.ciphertext),
+        iv_hex: to_hex(&output.iv),
+        key_size: finalist_key_size_label(output.key_size),
+    }))
+}
+
+async fn rc6_decrypt(
+    Json(payload): Json<BlockCipherDecryptRequest>,
+) -> Result<Json<PlaintextResponse>, ApiError> {
+    let ciphertext = from_hex(&payload.ciphertext_hex)?;
+    let plaintext = finalists::rc6_decrypt_cbc(
+        payload.key.as_bytes(),
+        payload.iv.as_bytes(),
+        &ciphertext,
+    )
+    .map_err(map_finalist_error)?;
+    let result = String::from_utf8(plaintext).map_err(|_| {
+        ApiError::new(
+            StatusCode::BAD_REQUEST,
+            "invalid_plaintext",
+            "The decrypted output is not valid UTF-8 text",
+        )
+    })?;
+
+    Ok(Json(PlaintextResponse { result }))
+}
+
+async fn rijndael_encrypt(
+    Json(payload): Json<BlockCipherEncryptRequest>,
+) -> Result<Json<FinalistEncryptResponse>, ApiError> {
+    let output = finalists::rijndael_encrypt_cbc(
+        payload.key.as_bytes(),
+        payload.iv.as_bytes(),
+        payload.plaintext.as_bytes(),
+    )
+    .map_err(map_finalist_error)?;
+
+    Ok(Json(FinalistEncryptResponse {
+        ciphertext_hex: to_hex(&output.ciphertext),
+        iv_hex: to_hex(&output.iv),
+        key_size: finalist_key_size_label(output.key_size),
+    }))
+}
+
+async fn rijndael_decrypt(
+    Json(payload): Json<BlockCipherDecryptRequest>,
+) -> Result<Json<PlaintextResponse>, ApiError> {
+    let ciphertext = from_hex(&payload.ciphertext_hex)?;
+    let plaintext = finalists::rijndael_decrypt_cbc(
+        payload.key.as_bytes(),
+        payload.iv.as_bytes(),
+        &ciphertext,
+    )
+    .map_err(map_finalist_error)?;
+    let result = String::from_utf8(plaintext).map_err(|_| {
+        ApiError::new(
+            StatusCode::BAD_REQUEST,
+            "invalid_plaintext",
+            "The decrypted output is not valid UTF-8 text",
+        )
+    })?;
+
+    Ok(Json(PlaintextResponse { result }))
+}
+
 pub fn router() -> Router {
     Router::new()
         .route("/symmetric/rc4/encrypt", post(rc4_encrypt))
@@ -218,5 +400,13 @@ pub fn router() -> Router {
         .route("/symmetric/des/encrypt", post(des_encrypt))
         .route("/symmetric/des/decrypt", post(des_decrypt))
         .route("/symmetric/aes/encrypt", post(aes_encrypt))
-        .route("/symmetric/aes/decrypt", post(aes_decrypt))
+    .route("/symmetric/aes/decrypt", post(aes_decrypt))
+    .route("/symmetric/twofish/encrypt", post(twofish_encrypt))
+    .route("/symmetric/twofish/decrypt", post(twofish_decrypt))
+    .route("/symmetric/serpent/encrypt", post(serpent_encrypt))
+    .route("/symmetric/serpent/decrypt", post(serpent_decrypt))
+    .route("/symmetric/rc6/encrypt", post(rc6_encrypt))
+    .route("/symmetric/rc6/decrypt", post(rc6_decrypt))
+    .route("/symmetric/rijndael/encrypt", post(rijndael_encrypt))
+    .route("/symmetric/rijndael/decrypt", post(rijndael_decrypt))
 }

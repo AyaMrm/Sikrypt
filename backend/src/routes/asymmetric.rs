@@ -1,8 +1,11 @@
 use axum::{extract::Json, http::StatusCode, routing::post, Router};
+use base64::engine::general_purpose::STANDARD;
+use base64::Engine;
 
 use crate::{
     algorithms::asymmetric::{
         diffie_hellman::{self, DiffieHellmanError, DiffieHellmanSetup},
+        ecc::{self, EccError},
         elgamal::{self, ElGamalError, ElGamalParameters},
         rsa::{self, RsaError},
     },
@@ -10,9 +13,20 @@ use crate::{
     models::asymmetric::{
         DiffieHellmanExchangeRequest, DiffieHellmanExchangeResponse, ElGamalEncryptRequest,
         ElGamalEncryptResponse, ElGamalDecryptRequest, ElGamalDecryptResponse, RsaDecryptRequest,
-        RsaDecryptResponse, RsaEncryptRequest, RsaEncryptResponse,
+        RsaDecryptResponse, RsaEncryptRequest, RsaEncryptResponse, EccDeriveRequest,
+        EccDeriveResponse, EccKeyGenResponse,
     },
 };
+
+fn decode_base64(value: &str, field: &str) -> Result<Vec<u8>, ApiError> {
+    STANDARD.decode(value).map_err(|_| {
+        ApiError::new(
+            StatusCode::BAD_REQUEST,
+            "invalid_base64",
+            format!("Invalid base64 for {field}"),
+        )
+    })
+}
 
 fn map_diffie_hellman_error(error: DiffieHellmanError) -> ApiError {
     match error {
@@ -90,6 +104,21 @@ fn map_elgamal_error(error: ElGamalError) -> ApiError {
             StatusCode::BAD_REQUEST,
             "shared_secret_not_invertible",
             "ElGamal could not invert the shared secret modulo p",
+        ),
+    }
+}
+
+fn map_ecc_error(error: EccError) -> ApiError {
+    match error {
+        EccError::InvalidPrivateKey => ApiError::new(
+            StatusCode::BAD_REQUEST,
+            "invalid_private_key",
+            "Invalid P-256 private key",
+        ),
+        EccError::InvalidPublicKey => ApiError::new(
+            StatusCode::BAD_REQUEST,
+            "invalid_public_key",
+            "Invalid P-256 public key",
         ),
     }
 }
@@ -186,11 +215,35 @@ async fn elgamal_decrypt(
     Ok(Json(ElGamalDecryptResponse { message }))
 }
 
+async fn ecc_keygen() -> Result<Json<EccKeyGenResponse>, ApiError> {
+    let key_pair = ecc::generate_key_pair();
+
+    Ok(Json(EccKeyGenResponse {
+        public_key_base64: STANDARD.encode(key_pair.public_key),
+        private_key_base64: STANDARD.encode(key_pair.private_key),
+    }))
+}
+
+async fn ecc_derive(
+    Json(payload): Json<EccDeriveRequest>,
+) -> Result<Json<EccDeriveResponse>, ApiError> {
+    let private_key = decode_base64(&payload.private_key_base64, "private_key_base64")?;
+    let peer_public_key = decode_base64(&payload.peer_public_key_base64, "peer_public_key_base64")?;
+    let shared_secret = ecc::derive_shared_secret(&private_key, &peer_public_key)
+        .map_err(map_ecc_error)?;
+
+    Ok(Json(EccDeriveResponse {
+        shared_secret_base64: STANDARD.encode(shared_secret),
+    }))
+}
+
 pub fn router() -> Router {
     Router::new()
         .route("/asymmetric/dh/exchange", post(diffie_hellman_exchange))
         .route("/asymmetric/rsa/encrypt", post(rsa_encrypt))
         .route("/asymmetric/rsa/decrypt", post(rsa_decrypt))
         .route("/asymmetric/elgamal/encrypt", post(elgamal_encrypt))
-        .route("/asymmetric/elgamal/decrypt", post(elgamal_decrypt))
+    .route("/asymmetric/elgamal/decrypt", post(elgamal_decrypt))
+    .route("/asymmetric/ecc/p256/keygen", post(ecc_keygen))
+    .route("/asymmetric/ecc/p256/derive", post(ecc_derive))
 }

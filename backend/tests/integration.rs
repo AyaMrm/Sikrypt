@@ -126,6 +126,84 @@ async fn x25519_keygen_returns_base64_keys() {
 }
 
 #[tokio::test]
+async fn ecc_p256_keygen_and_derive() {
+    let _env_guard = ensure_api_key_disabled();
+    let app = create_app();
+
+    let alice_response = app
+        .clone()
+        .oneshot(Request::post("/asymmetric/ecc/p256/keygen").body(Body::empty()).unwrap())
+        .await
+        .unwrap();
+    assert_eq!(alice_response.status().as_u16(), 200);
+    let alice_body = to_bytes(alice_response.into_body(), usize::MAX).await.unwrap();
+    let alice_json: Value = serde_json::from_slice(&alice_body).unwrap();
+
+    let bob_response = app
+        .clone()
+        .oneshot(Request::post("/asymmetric/ecc/p256/keygen").body(Body::empty()).unwrap())
+        .await
+        .unwrap();
+    assert_eq!(bob_response.status().as_u16(), 200);
+    let bob_body = to_bytes(bob_response.into_body(), usize::MAX).await.unwrap();
+    let bob_json: Value = serde_json::from_slice(&bob_body).unwrap();
+
+    let alice_private = alice_json
+        .get("private_key_base64")
+        .and_then(|val| val.as_str())
+        .unwrap();
+    let alice_public = alice_json
+        .get("public_key_base64")
+        .and_then(|val| val.as_str())
+        .unwrap();
+    let bob_private = bob_json
+        .get("private_key_base64")
+        .and_then(|val| val.as_str())
+        .unwrap();
+    let bob_public = bob_json
+        .get("public_key_base64")
+        .and_then(|val| val.as_str())
+        .unwrap();
+
+    let alice_derive = json!({
+        "private_key_base64": alice_private,
+        "peer_public_key_base64": bob_public
+    });
+    let alice_response = app
+        .clone()
+        .oneshot(to_json_request("/asymmetric/ecc/p256/derive", alice_derive))
+        .await
+        .unwrap();
+    assert_eq!(alice_response.status().as_u16(), 200);
+    let alice_body = to_bytes(alice_response.into_body(), usize::MAX).await.unwrap();
+    let alice_json: Value = serde_json::from_slice(&alice_body).unwrap();
+
+    let bob_derive = json!({
+        "private_key_base64": bob_private,
+        "peer_public_key_base64": alice_public
+    });
+    let bob_response = app
+        .oneshot(to_json_request("/asymmetric/ecc/p256/derive", bob_derive))
+        .await
+        .unwrap();
+    assert_eq!(bob_response.status().as_u16(), 200);
+    let bob_body = to_bytes(bob_response.into_body(), usize::MAX).await.unwrap();
+    let bob_json: Value = serde_json::from_slice(&bob_body).unwrap();
+
+    let alice_secret = alice_json
+        .get("shared_secret_base64")
+        .and_then(|val| val.as_str())
+        .unwrap();
+    let bob_secret = bob_json
+        .get("shared_secret_base64")
+        .and_then(|val| val.as_str())
+        .unwrap();
+
+    assert!(!alice_secret.is_empty());
+    assert_eq!(alice_secret, bob_secret);
+}
+
+#[tokio::test]
 async fn crypto_endpoints_require_api_key_when_enabled() {
     let api_key = "test-api-key";
     let env_guard = set_api_key(api_key);
@@ -883,6 +961,158 @@ async fn aes_roundtrip_endpoint_works() {
     let decrypt_json: Value = serde_json::from_slice(&decrypt_body).unwrap();
 
     assert_eq!(decrypt_json.get("result").and_then(|v| v.as_str()), Some("hello aes"));
+}
+
+#[tokio::test]
+async fn twofish_roundtrip_endpoint_works() {
+    let _env_guard = ensure_api_key_disabled();
+    let app = create_app();
+
+    let encrypt_payload = json!({
+        "plaintext": "Twofish test message",
+        "key": "0123456789ABCDEF",
+        "iv": "FEDCBA9876543210"
+    });
+    let encrypt_response = app
+        .clone()
+        .oneshot(to_json_request("/symmetric/twofish/encrypt", encrypt_payload))
+        .await
+        .unwrap();
+    assert_eq!(encrypt_response.status(), StatusCode::OK);
+    let encrypt_body = to_bytes(encrypt_response.into_body(), usize::MAX).await.unwrap();
+    let encrypt_json: Value = serde_json::from_slice(&encrypt_body).unwrap();
+
+    let decrypt_payload = json!({
+        "ciphertext_hex": encrypt_json["ciphertext_hex"],
+        "key": "0123456789ABCDEF",
+        "iv": "FEDCBA9876543210"
+    });
+    let decrypt_response = app
+        .oneshot(to_json_request("/symmetric/twofish/decrypt", decrypt_payload))
+        .await
+        .unwrap();
+    assert_eq!(decrypt_response.status(), StatusCode::OK);
+    let decrypt_body = to_bytes(decrypt_response.into_body(), usize::MAX).await.unwrap();
+    let decrypt_json: Value = serde_json::from_slice(&decrypt_body).unwrap();
+
+    assert_eq!(
+        decrypt_json.get("result").and_then(|v| v.as_str()),
+        Some("Twofish test message")
+    );
+}
+
+#[tokio::test]
+async fn serpent_roundtrip_endpoint_works() {
+    let _env_guard = ensure_api_key_disabled();
+    let app = create_app();
+
+    let encrypt_payload = json!({
+        "plaintext": "Serpent test message",
+        "key": "0123456789ABCDEF",
+        "iv": "FEDCBA9876543210"
+    });
+    let encrypt_response = app
+        .clone()
+        .oneshot(to_json_request("/symmetric/serpent/encrypt", encrypt_payload))
+        .await
+        .unwrap();
+    assert_eq!(encrypt_response.status(), StatusCode::OK);
+    let encrypt_body = to_bytes(encrypt_response.into_body(), usize::MAX).await.unwrap();
+    let encrypt_json: Value = serde_json::from_slice(&encrypt_body).unwrap();
+
+    let decrypt_payload = json!({
+        "ciphertext_hex": encrypt_json["ciphertext_hex"],
+        "key": "0123456789ABCDEF",
+        "iv": "FEDCBA9876543210"
+    });
+    let decrypt_response = app
+        .oneshot(to_json_request("/symmetric/serpent/decrypt", decrypt_payload))
+        .await
+        .unwrap();
+    assert_eq!(decrypt_response.status(), StatusCode::OK);
+    let decrypt_body = to_bytes(decrypt_response.into_body(), usize::MAX).await.unwrap();
+    let decrypt_json: Value = serde_json::from_slice(&decrypt_body).unwrap();
+
+    assert_eq!(
+        decrypt_json.get("result").and_then(|v| v.as_str()),
+        Some("Serpent test message")
+    );
+}
+
+#[tokio::test]
+async fn rc6_roundtrip_endpoint_works() {
+    let _env_guard = ensure_api_key_disabled();
+    let app = create_app();
+
+    let encrypt_payload = json!({
+        "plaintext": "RC6 test message",
+        "key": "0123456789ABCDEF",
+        "iv": "FEDCBA9876543210"
+    });
+    let encrypt_response = app
+        .clone()
+        .oneshot(to_json_request("/symmetric/rc6/encrypt", encrypt_payload))
+        .await
+        .unwrap();
+    assert_eq!(encrypt_response.status(), StatusCode::OK);
+    let encrypt_body = to_bytes(encrypt_response.into_body(), usize::MAX).await.unwrap();
+    let encrypt_json: Value = serde_json::from_slice(&encrypt_body).unwrap();
+
+    let decrypt_payload = json!({
+        "ciphertext_hex": encrypt_json["ciphertext_hex"],
+        "key": "0123456789ABCDEF",
+        "iv": "FEDCBA9876543210"
+    });
+    let decrypt_response = app
+        .oneshot(to_json_request("/symmetric/rc6/decrypt", decrypt_payload))
+        .await
+        .unwrap();
+    assert_eq!(decrypt_response.status(), StatusCode::OK);
+    let decrypt_body = to_bytes(decrypt_response.into_body(), usize::MAX).await.unwrap();
+    let decrypt_json: Value = serde_json::from_slice(&decrypt_body).unwrap();
+
+    assert_eq!(
+        decrypt_json.get("result").and_then(|v| v.as_str()),
+        Some("RC6 test message")
+    );
+}
+
+#[tokio::test]
+async fn rijndael_roundtrip_endpoint_works() {
+    let _env_guard = ensure_api_key_disabled();
+    let app = create_app();
+
+    let encrypt_payload = json!({
+        "plaintext": "Rijndael test message",
+        "key": "0123456789ABCDEF",
+        "iv": "FEDCBA9876543210"
+    });
+    let encrypt_response = app
+        .clone()
+        .oneshot(to_json_request("/symmetric/rijndael/encrypt", encrypt_payload))
+        .await
+        .unwrap();
+    assert_eq!(encrypt_response.status(), StatusCode::OK);
+    let encrypt_body = to_bytes(encrypt_response.into_body(), usize::MAX).await.unwrap();
+    let encrypt_json: Value = serde_json::from_slice(&encrypt_body).unwrap();
+
+    let decrypt_payload = json!({
+        "ciphertext_hex": encrypt_json["ciphertext_hex"],
+        "key": "0123456789ABCDEF",
+        "iv": "FEDCBA9876543210"
+    });
+    let decrypt_response = app
+        .oneshot(to_json_request("/symmetric/rijndael/decrypt", decrypt_payload))
+        .await
+        .unwrap();
+    assert_eq!(decrypt_response.status(), StatusCode::OK);
+    let decrypt_body = to_bytes(decrypt_response.into_body(), usize::MAX).await.unwrap();
+    let decrypt_json: Value = serde_json::from_slice(&decrypt_body).unwrap();
+
+    assert_eq!(
+        decrypt_json.get("result").and_then(|v| v.as_str()),
+        Some("Rijndael test message")
+    );
 }
 
 #[tokio::test]

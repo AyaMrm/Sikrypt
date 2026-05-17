@@ -24,7 +24,11 @@ const classicOptions = [
 const symmetricOptions = [
   { id: "rc4", label: "RC4" },
   { id: "des", label: "DES" },
-  { id: "aes", label: "AES" }
+  { id: "aes", label: "AES" },
+  { id: "rijndael", label: "Rijndael" },
+  { id: "twofish", label: "Twofish" },
+  { id: "serpent", label: "Serpent" },
+  { id: "rc6", label: "RC6" }
 ];
 
 const hashOptions = [
@@ -536,7 +540,14 @@ function SymmetricPanel() {
           </Field>
         )}
 
-        <Field label="Cle" helper={algo === "rc4" ? "Libre" : "DES=8 bytes, AES=16/24/32 bytes"}>
+        <Field
+          label="Cle"
+          helper={
+            algo === "rc4"
+              ? "Libre"
+              : "DES=8 bytes, RC6=16 bytes, autres=16/24/32 bytes"
+          }
+        >
           <input value={key} onChange={(event) => setKey(event.target.value)} />
         </Field>
 
@@ -558,12 +569,23 @@ function SymmetricPanel() {
 }
 
 function AsymmetricPanel() {
+  const [algo, setAlgo] = useState("rsa-oaep");
   const [bits, setBits] = useState(2048);
   const [publicKey, setPublicKey] = useState("");
   const [privateKey, setPrivateKey] = useState("");
+  const [peerPublicKey, setPeerPublicKey] = useState("");
   const [mode, setMode] = useState("encrypt");
   const [message, setMessage] = useState("Bonjour RSA");
   const [ciphertext, setCiphertext] = useState("");
+  const [pValue, setPValue] = useState("23");
+  const [gValue, setGValue] = useState("5");
+  const [alicePrivate, setAlicePrivate] = useState("6");
+  const [bobPrivate, setBobPrivate] = useState("15");
+  const [elgamalPrivate, setElgamalPrivate] = useState("6");
+  const [elgamalMessage, setElgamalMessage] = useState("12345");
+  const [elgamalEphemeral, setElgamalEphemeral] = useState("7");
+  const [elgamalC1, setElgamalC1] = useState("");
+  const [elgamalC2, setElgamalC2] = useState("");
   const [result, setResult] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -574,10 +596,17 @@ function AsymmetricPanel() {
     setLoading(true);
 
     try {
-      const data = await apiPost("/crypto/keys/rsa", { bits: Number(bits) });
-      setPublicKey(data.public_key_pem);
-      setPrivateKey(data.private_key_pem);
-      setResult(JSON.stringify(data, null, 2));
+      if (algo === "rsa-oaep") {
+        const data = await apiPost("/crypto/keys/rsa", { bits: Number(bits) });
+        setPublicKey(data.public_key_pem);
+        setPrivateKey(data.private_key_pem);
+        setResult(JSON.stringify(data, null, 2));
+      } else if (algo === "ecc-ecdh") {
+        const data = await apiPost("/asymmetric/ecc/p256/keygen", {});
+        setPublicKey(data.public_key_base64);
+        setPrivateKey(data.private_key_base64);
+        setResult(JSON.stringify(data, null, 2));
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -595,28 +624,68 @@ function AsymmetricPanel() {
       let path = "";
       let payload = {};
 
-      if (mode === "encrypt") {
-        path = "/crypto/rsa/oaep/encrypt";
+      if (algo === "rsa-oaep") {
+        if (mode === "encrypt") {
+          path = "/crypto/rsa/oaep/encrypt";
+          payload = {
+            public_key_pem: publicKey,
+            plaintext_base64: textToBase64(message)
+          };
+        } else {
+          path = "/crypto/rsa/oaep/decrypt";
+          payload = {
+            private_key_pem: privateKey,
+            ciphertext_base64: ciphertext
+          };
+        }
+      } else if (algo === "dh") {
+        path = "/asymmetric/dh/exchange";
         payload = {
-          public_key_pem: publicKey,
-          plaintext_base64: textToBase64(message)
+          p: Number(pValue),
+          g: Number(gValue),
+          alice_private: Number(alicePrivate),
+          bob_private: Number(bobPrivate)
         };
-      } else {
-        path = "/crypto/rsa/oaep/decrypt";
+      } else if (algo === "elgamal") {
+        if (mode === "encrypt") {
+          path = "/asymmetric/elgamal/encrypt";
+          payload = {
+            p: Number(pValue),
+            g: Number(gValue),
+            private_key: Number(elgamalPrivate),
+            message: Number(elgamalMessage),
+            ephemeral_key: Number(elgamalEphemeral)
+          };
+        } else {
+          path = "/asymmetric/elgamal/decrypt";
+          payload = {
+            p: Number(pValue),
+            g: Number(gValue),
+            private_key: Number(elgamalPrivate),
+            c1: Number(elgamalC1),
+            c2: Number(elgamalC2)
+          };
+        }
+      } else if (algo === "ecc-ecdh") {
+        path = "/asymmetric/ecc/p256/derive";
         payload = {
-          private_key_pem: privateKey,
-          ciphertext_base64: ciphertext
+          private_key_base64: privateKey,
+          peer_public_key_base64: peerPublicKey
         };
       }
 
       const data = await apiPost(path, payload);
-      if (mode === "decrypt") {
+      if (algo === "rsa-oaep" && mode === "decrypt") {
         try {
           const plain = base64ToText(data.plaintext_base64);
           data.plaintext_text = plain;
         } catch (err) {
           // ignore decoding errors
         }
+      }
+      if (algo === "elgamal" && mode === "encrypt") {
+        setElgamalC1(String(data.c1 || ""));
+        setElgamalC2(String(data.c2 || ""));
       }
       setResult(JSON.stringify(data, null, 2));
     } catch (err) {
@@ -629,45 +698,190 @@ function AsymmetricPanel() {
   return (
     <section className="panel">
       <div className="card">
-        <div className="row">
-          <Field label="Taille RSA">
-            <select value={bits} onChange={(event) => setBits(event.target.value)}>
-              <option value={2048}>2048</option>
-              <option value={3072}>3072</option>
-              <option value={4096}>4096</option>
-            </select>
-          </Field>
-          <button type="button" onClick={keygen} disabled={loading}>
-            Generer les cles
-          </button>
-        </div>
-        <div className="grid-2">
-          <Field label="Cle publique (PEM)">
-            <textarea value={publicKey} onChange={(event) => setPublicKey(event.target.value)} />
-          </Field>
-          <Field label="Cle privee (PEM)">
-            <textarea value={privateKey} onChange={(event) => setPrivateKey(event.target.value)} />
-          </Field>
-        </div>
+        <Field label="Algorithme">
+          <select value={algo} onChange={(event) => setAlgo(event.target.value)}>
+            <option value="rsa-oaep">RSA-OAEP (moderne)</option>
+            <option value="dh">Diffie-Hellman (educatif)</option>
+            <option value="elgamal">ElGamal (educatif)</option>
+            <option value="ecc-ecdh">ECC P-256 (ECDH)</option>
+          </select>
+        </Field>
+      </div>
+
+      <div className="card">
+        {algo === "rsa-oaep" ? (
+          <>
+            <div className="row">
+              <Field label="Taille RSA">
+                <select value={bits} onChange={(event) => setBits(event.target.value)}>
+                  <option value={2048}>2048</option>
+                  <option value={3072}>3072</option>
+                  <option value={4096}>4096</option>
+                </select>
+              </Field>
+              <button type="button" onClick={keygen} disabled={loading}>
+                Generer les cles
+              </button>
+            </div>
+            <div className="grid-2">
+              <Field label="Cle publique (PEM)">
+                <textarea
+                  value={publicKey}
+                  onChange={(event) => setPublicKey(event.target.value)}
+                />
+              </Field>
+              <Field label="Cle privee (PEM)">
+                <textarea
+                  value={privateKey}
+                  onChange={(event) => setPrivateKey(event.target.value)}
+                />
+              </Field>
+            </div>
+          </>
+        ) : null}
+
+        {algo === "ecc-ecdh" ? (
+          <>
+            <div className="row">
+              <button type="button" onClick={keygen} disabled={loading}>
+                Generer les cles P-256
+              </button>
+            </div>
+            <div className="grid-2">
+              <Field label="Cle publique (base64)">
+                <textarea
+                  value={publicKey}
+                  onChange={(event) => setPublicKey(event.target.value)}
+                />
+              </Field>
+              <Field label="Cle privee (base64)">
+                <textarea
+                  value={privateKey}
+                  onChange={(event) => setPrivateKey(event.target.value)}
+                />
+              </Field>
+            </div>
+            <Field label="Cle publique du peer (base64)">
+              <textarea
+                value={peerPublicKey}
+                onChange={(event) => setPeerPublicKey(event.target.value)}
+              />
+            </Field>
+          </>
+        ) : null}
       </div>
 
       <form onSubmit={submit} className="card">
-        <Field label="Mode">
-          <select value={mode} onChange={(event) => setMode(event.target.value)}>
-            <option value="encrypt">Chiffrement RSA-OAEP</option>
-            <option value="decrypt">Dechiffrement RSA-OAEP</option>
-          </select>
-        </Field>
+        {algo === "rsa-oaep" ? (
+          <>
+            <Field label="Mode">
+              <select value={mode} onChange={(event) => setMode(event.target.value)}>
+                <option value="encrypt">Chiffrement RSA-OAEP</option>
+                <option value="decrypt">Dechiffrement RSA-OAEP</option>
+              </select>
+            </Field>
 
-        {mode === "encrypt" ? (
-          <Field label="Message">
-            <textarea value={message} onChange={(event) => setMessage(event.target.value)} />
-          </Field>
-        ) : (
-          <Field label="ciphertext_base64">
-            <textarea value={ciphertext} onChange={(event) => setCiphertext(event.target.value)} />
-          </Field>
-        )}
+            {mode === "encrypt" ? (
+              <Field label="Message">
+                <textarea value={message} onChange={(event) => setMessage(event.target.value)} />
+              </Field>
+            ) : (
+              <Field label="ciphertext_base64">
+                <textarea
+                  value={ciphertext}
+                  onChange={(event) => setCiphertext(event.target.value)}
+                />
+              </Field>
+            )}
+          </>
+        ) : null}
+
+        {algo === "dh" ? (
+          <div className="grid-2">
+            <Field label="p">
+              <input value={pValue} onChange={(event) => setPValue(event.target.value)} />
+            </Field>
+            <Field label="g">
+              <input value={gValue} onChange={(event) => setGValue(event.target.value)} />
+            </Field>
+            <Field label="alice_private">
+              <input
+                value={alicePrivate}
+                onChange={(event) => setAlicePrivate(event.target.value)}
+              />
+            </Field>
+            <Field label="bob_private">
+              <input
+                value={bobPrivate}
+                onChange={(event) => setBobPrivate(event.target.value)}
+              />
+            </Field>
+          </div>
+        ) : null}
+
+        {algo === "elgamal" ? (
+          <>
+            <Field label="Mode">
+              <select value={mode} onChange={(event) => setMode(event.target.value)}>
+                <option value="encrypt">Chiffrement ElGamal</option>
+                <option value="decrypt">Dechiffrement ElGamal</option>
+              </select>
+            </Field>
+            <div className="grid-2">
+              <Field label="p">
+                <input value={pValue} onChange={(event) => setPValue(event.target.value)} />
+              </Field>
+              <Field label="g">
+                <input value={gValue} onChange={(event) => setGValue(event.target.value)} />
+              </Field>
+              <Field label="cle privee">
+                <input
+                  value={elgamalPrivate}
+                  onChange={(event) => setElgamalPrivate(event.target.value)}
+                />
+              </Field>
+              {mode === "encrypt" ? (
+                <>
+                  <Field label="message">
+                    <input
+                      value={elgamalMessage}
+                      onChange={(event) => setElgamalMessage(event.target.value)}
+                    />
+                  </Field>
+                  <Field label="k (ephemere)">
+                    <input
+                      value={elgamalEphemeral}
+                      onChange={(event) => setElgamalEphemeral(event.target.value)}
+                    />
+                  </Field>
+                </>
+              ) : (
+                <>
+                  <Field label="c1">
+                    <input
+                      value={elgamalC1}
+                      onChange={(event) => setElgamalC1(event.target.value)}
+                    />
+                  </Field>
+                  <Field label="c2">
+                    <input
+                      value={elgamalC2}
+                      onChange={(event) => setElgamalC2(event.target.value)}
+                    />
+                  </Field>
+                </>
+              )}
+            </div>
+          </>
+        ) : null}
+
+        {algo === "ecc-ecdh" ? (
+          <>
+            <Field label="Deriver le secret partage">
+              <span className="helper">Utilise cle privee + cle publique du peer</span>
+            </Field>
+          </>
+        ) : null}
 
         <button type="submit" disabled={loading}>
           {loading ? "Traitement..." : "Executer"}
@@ -1371,8 +1585,8 @@ export default function App() {
     <div className="page">
       <header className="hero">
         <div>
-          <p className="kicker">Sikrypt - mode encryptor/decryptor</p>
-          <h1>Playground educatif</h1>
+          <p className="kicker">Welcome to </p>
+          <h1>Sikrypt</h1>
           <p className="subtitle">
             Teste rapidement les algorithmes classic, symmetric, asymmetric, signatures et hash.
           </p>

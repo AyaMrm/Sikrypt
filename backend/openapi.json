@@ -78,6 +78,40 @@
         },
         "required": ["public_key_base64", "private_key_base64"]
       },
+      "EccKeyGenResponse": {
+        "type": "object",
+        "properties": {
+          "public_key_base64": { "$ref": "#/components/schemas/Base64" },
+          "private_key_base64": { "$ref": "#/components/schemas/Base64" }
+        },
+        "example": {
+          "public_key_base64": "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE=",
+          "private_key_base64": "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF="
+        },
+        "required": ["public_key_base64", "private_key_base64"]
+      },
+      "EccDeriveRequest": {
+        "type": "object",
+        "properties": {
+          "private_key_base64": { "$ref": "#/components/schemas/Base64" },
+          "peer_public_key_base64": { "$ref": "#/components/schemas/Base64" }
+        },
+        "example": {
+          "private_key_base64": "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF=",
+          "peer_public_key_base64": "EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE="
+        },
+        "required": ["private_key_base64", "peer_public_key_base64"]
+      },
+      "EccDeriveResponse": {
+        "type": "object",
+        "properties": {
+          "shared_secret_base64": { "$ref": "#/components/schemas/Base64" }
+        },
+        "example": {
+          "shared_secret_base64": "U0hBUkVEX1NFQ1JFVA=="
+        },
+        "required": ["shared_secret_base64"]
+      },
       "SecureChannelEncryptRequest": {
         "type": "object",
         "properties": {
@@ -735,6 +769,16 @@
         "example": { "ciphertext_hex": "aabbcc", "iv_hex": "112233", "key_size": "AES-128" },
         "required": ["ciphertext_hex", "iv_hex", "key_size"]
       },
+      "FinalistEncryptResponse": {
+        "type": "object",
+        "properties": {
+          "ciphertext_hex": { "type": "string" },
+          "iv_hex": { "type": "string" },
+          "key_size": { "type": "string" }
+        },
+        "example": { "ciphertext_hex": "aabbcc", "iv_hex": "112233", "key_size": "128-bit" },
+        "required": ["ciphertext_hex", "iv_hex", "key_size"]
+      },
       "PlaintextResponse": {
         "type": "object",
         "properties": {
@@ -1338,6 +1382,40 @@
         }
       }
     },
+    "/asymmetric/ecc/p256/keygen": {
+      "post": {
+        "summary": "ECC P-256 keygen (educational)",
+        "responses": {
+          "200": {
+            "description": "Key pair",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EccKeyGenResponse" } } }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
+    "/asymmetric/ecc/p256/derive": {
+      "post": {
+        "summary": "ECC P-256 derive shared secret (educational)",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EccDeriveRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Shared secret",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/EccDeriveResponse" } } }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+          }
+        }
+      }
+    },
     "/asymmetric/rsa/encrypt": {
       "post": {
         "summary": "RSA encrypt (educational)",
@@ -1370,6 +1448,110 @@
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RsaDecryptResponse" } } }
           },
           "400": {
+    "/symmetric/rijndael/encrypt": {
+      "post": {
+        "summary": "Rijndael encrypt",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BlockCipherEncryptRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Ciphertext", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FinalistEncryptResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/symmetric/rijndael/decrypt": {
+      "post": {
+        "summary": "Rijndael decrypt",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BlockCipherDecryptRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Result", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PlaintextResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/symmetric/twofish/encrypt": {
+      "post": {
+        "summary": "Twofish encrypt",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BlockCipherEncryptRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Ciphertext", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FinalistEncryptResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/symmetric/twofish/decrypt": {
+      "post": {
+        "summary": "Twofish decrypt",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BlockCipherDecryptRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Result", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PlaintextResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/symmetric/serpent/encrypt": {
+      "post": {
+        "summary": "Serpent encrypt",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BlockCipherEncryptRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Ciphertext", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FinalistEncryptResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/symmetric/serpent/decrypt": {
+      "post": {
+        "summary": "Serpent decrypt",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BlockCipherDecryptRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Result", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PlaintextResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/symmetric/rc6/encrypt": {
+      "post": {
+        "summary": "RC6 encrypt",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BlockCipherEncryptRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Ciphertext", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FinalistEncryptResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
+    "/symmetric/rc6/decrypt": {
+      "post": {
+        "summary": "RC6 decrypt",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/BlockCipherDecryptRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "Result", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PlaintextResponse" } } } },
+          "400": { "description": "Bad request", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } } }
+        }
+      }
+    },
             "description": "Bad request",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
           }

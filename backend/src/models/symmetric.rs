@@ -46,6 +46,13 @@ pub struct AesEncryptResponse {
 }
 
 #[derive(Debug, Serialize)]
+pub struct FinalistEncryptResponse {
+    pub ciphertext_hex: String,
+    pub iv_hex: String,
+    pub key_size: String,
+}
+
+#[derive(Debug, Serialize)]
 pub struct PlaintextResponse {
     pub result: String,
 }

@@ -73,3 +73,20 @@ pub struct ElGamalDecryptRequest {
 pub struct ElGamalDecryptResponse {
     pub message: u128,
 }
+
+#[derive(Debug, Serialize)]
+pub struct EccKeyGenResponse {
+    pub public_key_base64: String,
+    pub private_key_base64: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct EccDeriveRequest {
+    pub private_key_base64: String,
+    pub peer_public_key_base64: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct EccDeriveResponse {
+    pub shared_secret_base64: String,
+}
