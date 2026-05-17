@@ -1,12 +1,11 @@
-use axum::{extract::Json, http::StatusCode, routing::post, Router};
-use base64::engine::general_purpose::STANDARD;
+use axum::{Router, extract::Json, http::StatusCode, routing::post};
 use base64::Engine;
+use base64::engine::general_purpose::STANDARD;
 
 use crate::{
     algorithms::classic::{
         affine::{self, AffineError},
-        analysis,
-        caesar,
+        analysis, caesar,
         hill::{self, HillError, Matrix2x2},
         otp::{self, OtpError},
         playfair::{self, PlayfairError},
@@ -15,12 +14,13 @@ use crate::{
     errors::ApiError,
     models::classic::{
         AffineRequest, CaesarBruteforceCandidateResponse, CaesarBruteforceRequest,
-        CaesarBruteforceResponse, CaesarRequest, FrequencyAnalysisRequest, FrequencyAnalysisResponse,
-        HillEncryptRequest, IndexCoincidenceRequest, IndexCoincidenceResponse, KasiskiCandidateResponse,
-        KasiskiRequest, KasiskiResponse, LetterFrequencyResponse, OtpDecryptRequest, OtpEncryptRequest,
-        OtpResponse, PlayfairRequest, TextResultResponse, VigenereEncryptRequest,
-        VigenereEstimateKeyRequest, VigenereEstimateKeyResponse, VigenereKeyLengthListResponse,
-        VigenereKeyLengthRequest, VigenereKeyLengthResponse,
+        CaesarBruteforceResponse, CaesarRequest, FrequencyAnalysisRequest,
+        FrequencyAnalysisResponse, HillEncryptRequest, IndexCoincidenceRequest,
+        IndexCoincidenceResponse, KasiskiCandidateResponse, KasiskiRequest, KasiskiResponse,
+        LetterFrequencyResponse, OtpDecryptRequest, OtpEncryptRequest, OtpResponse,
+        PlayfairRequest, TextResultResponse, VigenereEncryptRequest, VigenereEstimateKeyRequest,
+        VigenereEstimateKeyResponse, VigenereKeyLengthListResponse, VigenereKeyLengthRequest,
+        VigenereKeyLengthResponse,
     },
 };
 
@@ -199,12 +199,20 @@ async fn playfair_decrypt(
 async fn otp_encrypt(
     Json(payload): Json<OtpEncryptRequest>,
 ) -> Result<Json<OtpResponse>, ApiError> {
-    let plaintext = STANDARD
-        .decode(payload.plaintext_base64)
-        .map_err(|_| ApiError::new(StatusCode::BAD_REQUEST, "invalid_base64", "Invalid plaintext base64"))?;
-    let key = STANDARD
-        .decode(payload.key_base64)
-        .map_err(|_| ApiError::new(StatusCode::BAD_REQUEST, "invalid_base64", "Invalid key base64"))?;
+    let plaintext = STANDARD.decode(payload.plaintext_base64).map_err(|_| {
+        ApiError::new(
+            StatusCode::BAD_REQUEST,
+            "invalid_base64",
+            "Invalid plaintext base64",
+        )
+    })?;
+    let key = STANDARD.decode(payload.key_base64).map_err(|_| {
+        ApiError::new(
+            StatusCode::BAD_REQUEST,
+            "invalid_base64",
+            "Invalid key base64",
+        )
+    })?;
     let output = otp::apply(&key, &plaintext).map_err(map_otp_error)?;
 
     Ok(Json(OtpResponse {
@@ -215,12 +223,20 @@ async fn otp_encrypt(
 async fn otp_decrypt(
     Json(payload): Json<OtpDecryptRequest>,
 ) -> Result<Json<OtpResponse>, ApiError> {
-    let ciphertext = STANDARD
-        .decode(payload.ciphertext_base64)
-        .map_err(|_| ApiError::new(StatusCode::BAD_REQUEST, "invalid_base64", "Invalid ciphertext base64"))?;
-    let key = STANDARD
-        .decode(payload.key_base64)
-        .map_err(|_| ApiError::new(StatusCode::BAD_REQUEST, "invalid_base64", "Invalid key base64"))?;
+    let ciphertext = STANDARD.decode(payload.ciphertext_base64).map_err(|_| {
+        ApiError::new(
+            StatusCode::BAD_REQUEST,
+            "invalid_base64",
+            "Invalid ciphertext base64",
+        )
+    })?;
+    let key = STANDARD.decode(payload.key_base64).map_err(|_| {
+        ApiError::new(
+            StatusCode::BAD_REQUEST,
+            "invalid_base64",
+            "Invalid key base64",
+        )
+    })?;
     let output = otp::apply(&key, &ciphertext).map_err(map_otp_error)?;
 
     Ok(Json(OtpResponse {
@@ -285,7 +301,9 @@ async fn vigenere_key_length_ic(
         .map(|(length, average_ic)| VigenereKeyLengthResponse { length, average_ic })
         .collect();
 
-    Ok(Json(VigenereKeyLengthListResponse { candidates: response }))
+    Ok(Json(VigenereKeyLengthListResponse {
+        candidates: response,
+    }))
 }
 
 async fn vigenere_estimate_key(
@@ -312,8 +330,17 @@ pub fn router() -> Router {
         .route("/classic/otp/encrypt", post(otp_encrypt))
         .route("/classic/otp/decrypt", post(otp_decrypt))
         .route("/classic/analysis/frequency", post(frequency_analysis))
-        .route("/classic/analysis/index-coincidence", post(index_of_coincidence))
+        .route(
+            "/classic/analysis/index-coincidence",
+            post(index_of_coincidence),
+        )
         .route("/classic/analysis/kasiski", post(kasiski_test))
-        .route("/classic/analysis/vigenere/key-length", post(vigenere_key_length_ic))
-        .route("/classic/analysis/vigenere/estimate-key", post(vigenere_estimate_key))
+        .route(
+            "/classic/analysis/vigenere/key-length",
+            post(vigenere_key_length_ic),
+        )
+        .route(
+            "/classic/analysis/vigenere/estimate-key",
+            post(vigenere_estimate_key),
+        )
 }

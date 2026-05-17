@@ -1,14 +1,14 @@
-use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
+use axum::Router;
 use axum::extract::Query;
+use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::response::IntoResponse;
 use axum::routing::get;
-use axum::Router;
 use futures_util::{SinkExt, StreamExt};
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicU64, Ordering};
 use tokio::sync::broadcast;
 
 const DEFAULT_ROOM: &str = "lobby";
@@ -50,7 +50,9 @@ fn normalize_label(value: Option<String>, fallback: &str) -> String {
 }
 
 fn room_sender(room: &str) -> broadcast::Sender<ServerMessage> {
-    let mut rooms = ROOMS.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    let mut rooms = ROOMS
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
     rooms
         .entry(room.to_string())
         .or_insert_with(|| {

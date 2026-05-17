@@ -33,9 +33,8 @@ fn read_env_usize(name: &str, default: usize) -> usize {
 }
 
 fn cors_layer() -> CorsLayer {
-    let origins = std::env::var("SIKRYPT_CORS_ORIGINS").unwrap_or_else(|_| {
-        "http://localhost:5173,http://127.0.0.1:5173".to_string()
-    });
+    let origins = std::env::var("SIKRYPT_CORS_ORIGINS")
+        .unwrap_or_else(|_| "http://localhost:5173,http://127.0.0.1:5173".to_string());
 
     if origins.trim() == "*" {
         CorsLayer::new()

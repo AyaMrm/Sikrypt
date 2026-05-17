@@ -71,7 +71,10 @@ fn validate_parameters(parameters: &ElGamalParameters) -> Result<(), ElGamalErro
     Ok(())
 }
 
-fn validate_private_key(parameters: &ElGamalParameters, private_key: u128) -> Result<(), ElGamalError> {
+fn validate_private_key(
+    parameters: &ElGamalParameters,
+    private_key: u128,
+) -> Result<(), ElGamalError> {
     validate_parameters(parameters)?;
 
     if private_key == 0 || private_key >= parameters.p - 1 {
@@ -124,15 +127,15 @@ pub fn decrypt(
     validate_private_key(parameters, private_key)?;
 
     let shared_secret = mod_pow(ciphertext.c1, private_key, parameters.p);
-    let inverse = mod_inverse(shared_secret, parameters.p)
-        .ok_or(ElGamalError::SharedSecretNotInvertible)?;
+    let inverse =
+        mod_inverse(shared_secret, parameters.p).ok_or(ElGamalError::SharedSecretNotInvertible)?;
 
     Ok(ciphertext.c2.saturating_mul(inverse) % parameters.p)
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{decrypt, encrypt, generate_key_pair, ElGamalError, ElGamalParameters};
+    use super::{ElGamalError, ElGamalParameters, decrypt, encrypt, generate_key_pair};
 
     #[test]
     fn encrypts_and_decrypts_message() {
@@ -140,7 +143,10 @@ mod tests {
         let key_pair = generate_key_pair(&parameters, 6).unwrap();
         let ciphertext = encrypt(&parameters, key_pair.public_key, 10, 7).unwrap();
 
-        assert_eq!(decrypt(&parameters, key_pair.private_key, &ciphertext).unwrap(), 10);
+        assert_eq!(
+            decrypt(&parameters, key_pair.private_key, &ciphertext).unwrap(),
+            10
+        );
     }
 
     #[test]

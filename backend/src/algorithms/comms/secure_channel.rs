@@ -64,7 +64,12 @@ pub fn protect_message(
 
     let encrypted = aes::encrypt_cbc(&session_keys.aes_key, iv, plaintext.as_bytes())
         .map_err(|_| SecureChannelError::EncryptionFailed)?;
-    let mac_input = format!("{}:{}:{}", sender_public_key, to_hex(iv), to_hex(&encrypted.ciphertext));
+    let mac_input = format!(
+        "{}:{}:{}",
+        sender_public_key,
+        to_hex(iv),
+        to_hex(&encrypted.ciphertext)
+    );
     let mac_hex = hmac_impl::hmac_sha256(&session_keys.hmac_key, &mac_input)
         .map_err(|_| SecureChannelError::IntegrityCheckFailed)?;
 
@@ -86,8 +91,9 @@ pub fn open_message(
         to_hex(&packet.iv),
         to_hex(&packet.ciphertext)
     );
-    let mac_valid = hmac_impl::verify_hmac_sha256(&session_keys.hmac_key, &mac_input, &packet.mac_hex)
-        .map_err(|_| SecureChannelError::IntegrityCheckFailed)?;
+    let mac_valid =
+        hmac_impl::verify_hmac_sha256(&session_keys.hmac_key, &mac_input, &packet.mac_hex)
+            .map_err(|_| SecureChannelError::IntegrityCheckFailed)?;
 
     if !mac_valid {
         return Err(SecureChannelError::IntegrityCheckFailed);
@@ -101,8 +107,8 @@ pub fn open_message(
 
 #[cfg(test)]
 mod tests {
-    use super::{derive_session_keys, open_message, protect_message, SecureChannelError};
-    use crate::algorithms::asymmetric::diffie_hellman::{compute_public_key, DiffieHellmanSetup};
+    use super::{SecureChannelError, derive_session_keys, open_message, protect_message};
+    use crate::algorithms::asymmetric::diffie_hellman::{DiffieHellmanSetup, compute_public_key};
 
     #[test]
     fn encrypts_and_opens_secure_packet() {
@@ -113,7 +119,8 @@ mod tests {
         let alice_keys = derive_session_keys(&setup, 6, bob_public).unwrap();
         let bob_keys = derive_session_keys(&setup, 15, alice_public).unwrap();
 
-        let packet = protect_message(&alice_keys, alice_public, b"INITVECTOR123456", "bonjour").unwrap();
+        let packet =
+            protect_message(&alice_keys, alice_public, b"INITVECTOR123456", "bonjour").unwrap();
         let message = open_message(&bob_keys, &packet).unwrap();
 
         assert_eq!(message, "bonjour");
@@ -128,7 +135,8 @@ mod tests {
         let alice_keys = derive_session_keys(&setup, 6, bob_public).unwrap();
         let bob_keys = derive_session_keys(&setup, 15, alice_public).unwrap();
 
-        let mut packet = protect_message(&alice_keys, alice_public, b"INITVECTOR123456", "bonjour").unwrap();
+        let mut packet =
+            protect_message(&alice_keys, alice_public, b"INITVECTOR123456", "bonjour").unwrap();
         packet.ciphertext[0] ^= 0x01;
 
         let result = open_message(&bob_keys, &packet);

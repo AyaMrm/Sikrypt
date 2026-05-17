@@ -117,9 +117,7 @@ pub fn sign(
     let hash = hash_to_modulus(message, modulus);
 
     let xr = (private_key.saturating_mul(r)) % modulus;
-    let s = ((hash + modulus).saturating_sub(xr) % modulus)
-        .saturating_mul(k_inv)
-        % modulus;
+    let s = ((hash + modulus).saturating_sub(xr) % modulus).saturating_mul(k_inv) % modulus;
 
     if s == 0 {
         return Err(ElGamalSignatureError::InvalidEphemeralKey);
@@ -155,7 +153,7 @@ pub fn verify(
 
 #[cfg(test)]
 mod tests {
-    use super::{sign, verify, ElGamalSignatureError};
+    use super::{ElGamalSignatureError, sign, verify};
 
     #[test]
     fn signs_and_verifies_message() {

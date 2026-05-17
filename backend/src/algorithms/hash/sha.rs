@@ -61,7 +61,7 @@ fn duration_to_nanos(duration: Duration) -> u128 {
 
 #[cfg(test)]
 mod tests {
-    use super::{benchmark_hash, sha256, sha512, ShaVariant};
+    use super::{ShaVariant, benchmark_hash, sha256, sha512};
 
     #[test]
     fn hashes_sha256_known_vector() {

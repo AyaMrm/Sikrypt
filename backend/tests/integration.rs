@@ -1,13 +1,13 @@
-use axum::body::{to_bytes, Body};
+use axum::body::{Body, to_bytes};
 use axum::http::{Request, StatusCode};
-use backend::algorithms::asymmetric::diffie_hellman::{compute_public_key, DiffieHellmanSetup};
+use backend::algorithms::asymmetric::diffie_hellman::{DiffieHellmanSetup, compute_public_key};
+use backend::algorithms::asymmetric::elgamal::{self, ElGamalParameters};
 use backend::algorithms::hash::hmac_impl;
 use backend::algorithms::signature::{dsa, ecdsa};
-use backend::algorithms::asymmetric::elgamal::{self, ElGamalParameters};
 use backend::app::create_app;
-use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
-use serde_json::{json, Value};
+use base64::engine::general_purpose::STANDARD;
+use serde_json::{Value, json};
 use std::sync::{Mutex, MutexGuard, OnceLock};
 use tower::ServiceExt;
 
@@ -104,7 +104,11 @@ async fn x25519_keygen_returns_base64_keys() {
     let _env_guard = ensure_api_key_disabled();
     let app = create_app();
     let response = app
-        .oneshot(Request::post("/crypto/keys/x25519").body(Body::empty()).unwrap())
+        .oneshot(
+            Request::post("/crypto/keys/x25519")
+                .body(Body::empty())
+                .unwrap(),
+        )
         .await
         .unwrap();
 
@@ -132,20 +136,32 @@ async fn ecc_p256_keygen_and_derive() {
 
     let alice_response = app
         .clone()
-        .oneshot(Request::post("/asymmetric/ecc/p256/keygen").body(Body::empty()).unwrap())
+        .oneshot(
+            Request::post("/asymmetric/ecc/p256/keygen")
+                .body(Body::empty())
+                .unwrap(),
+        )
         .await
         .unwrap();
     assert_eq!(alice_response.status().as_u16(), 200);
-    let alice_body = to_bytes(alice_response.into_body(), usize::MAX).await.unwrap();
+    let alice_body = to_bytes(alice_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let alice_json: Value = serde_json::from_slice(&alice_body).unwrap();
 
     let bob_response = app
         .clone()
-        .oneshot(Request::post("/asymmetric/ecc/p256/keygen").body(Body::empty()).unwrap())
+        .oneshot(
+            Request::post("/asymmetric/ecc/p256/keygen")
+                .body(Body::empty())
+                .unwrap(),
+        )
         .await
         .unwrap();
     assert_eq!(bob_response.status().as_u16(), 200);
-    let bob_body = to_bytes(bob_response.into_body(), usize::MAX).await.unwrap();
+    let bob_body = to_bytes(bob_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let bob_json: Value = serde_json::from_slice(&bob_body).unwrap();
 
     let alice_private = alice_json
@@ -175,7 +191,9 @@ async fn ecc_p256_keygen_and_derive() {
         .await
         .unwrap();
     assert_eq!(alice_response.status().as_u16(), 200);
-    let alice_body = to_bytes(alice_response.into_body(), usize::MAX).await.unwrap();
+    let alice_body = to_bytes(alice_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let alice_json: Value = serde_json::from_slice(&alice_body).unwrap();
 
     let bob_derive = json!({
@@ -187,7 +205,9 @@ async fn ecc_p256_keygen_and_derive() {
         .await
         .unwrap();
     assert_eq!(bob_response.status().as_u16(), 200);
-    let bob_body = to_bytes(bob_response.into_body(), usize::MAX).await.unwrap();
+    let bob_body = to_bytes(bob_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let bob_json: Value = serde_json::from_slice(&bob_body).unwrap();
 
     let alice_secret = alice_json
@@ -211,13 +231,21 @@ async fn crypto_endpoints_require_api_key_when_enabled() {
 
     let missing_key_response = app
         .clone()
-        .oneshot(Request::post("/crypto/keys/x25519").body(Body::empty()).unwrap())
+        .oneshot(
+            Request::post("/crypto/keys/x25519")
+                .body(Body::empty())
+                .unwrap(),
+        )
         .await
         .unwrap();
     assert_eq!(missing_key_response.status(), StatusCode::UNAUTHORIZED);
 
     let with_key_response = app
-        .oneshot(to_json_request_with_key("/crypto/keys/x25519", json!({}), api_key))
+        .oneshot(to_json_request_with_key(
+            "/crypto/keys/x25519",
+            json!({}),
+            api_key,
+        ))
         .await
         .unwrap();
     assert_eq!(with_key_response.status(), StatusCode::OK);
@@ -235,7 +263,11 @@ async fn crypto_rate_limit_triggers_for_api_key() {
     for _ in 0..61 {
         let response = app
             .clone()
-            .oneshot(to_json_request_with_key("/crypto/keys/x25519", json!({}), api_key))
+            .oneshot(to_json_request_with_key(
+                "/crypto/keys/x25519",
+                json!({}),
+                api_key,
+            ))
             .await
             .unwrap();
         last_status = response.status();
@@ -252,7 +284,11 @@ async fn secure_channel_roundtrip() {
 
     let sender_keys = app
         .clone()
-        .oneshot(Request::post("/crypto/keys/x25519").body(Body::empty()).unwrap())
+        .oneshot(
+            Request::post("/crypto/keys/x25519")
+                .body(Body::empty())
+                .unwrap(),
+        )
         .await
         .unwrap();
     assert_eq!(sender_keys.status(), StatusCode::OK);
@@ -261,11 +297,17 @@ async fn secure_channel_roundtrip() {
 
     let receiver_keys = app
         .clone()
-        .oneshot(Request::post("/crypto/keys/x25519").body(Body::empty()).unwrap())
+        .oneshot(
+            Request::post("/crypto/keys/x25519")
+                .body(Body::empty())
+                .unwrap(),
+        )
         .await
         .unwrap();
     assert_eq!(receiver_keys.status(), StatusCode::OK);
-    let receiver_body = to_bytes(receiver_keys.into_body(), usize::MAX).await.unwrap();
+    let receiver_body = to_bytes(receiver_keys.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let receiver_json: Value = serde_json::from_slice(&receiver_body).unwrap();
 
     let plaintext = b"hello secure channel";
@@ -277,11 +319,16 @@ async fn secure_channel_roundtrip() {
 
     let encrypt_response = app
         .clone()
-        .oneshot(to_json_request("/crypto/secure-channel/encrypt", encrypt_payload))
+        .oneshot(to_json_request(
+            "/crypto/secure-channel/encrypt",
+            encrypt_payload,
+        ))
         .await
         .unwrap();
     assert_eq!(encrypt_response.status(), StatusCode::OK);
-    let encrypt_body = to_bytes(encrypt_response.into_body(), usize::MAX).await.unwrap();
+    let encrypt_body = to_bytes(encrypt_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let encrypt_json: Value = serde_json::from_slice(&encrypt_body).unwrap();
 
     let decrypt_payload = json!({
@@ -293,11 +340,16 @@ async fn secure_channel_roundtrip() {
     });
 
     let decrypt_response = app
-        .oneshot(to_json_request("/crypto/secure-channel/decrypt", decrypt_payload))
+        .oneshot(to_json_request(
+            "/crypto/secure-channel/decrypt",
+            decrypt_payload,
+        ))
         .await
         .unwrap();
     assert_eq!(decrypt_response.status(), StatusCode::OK);
-    let decrypt_body = to_bytes(decrypt_response.into_body(), usize::MAX).await.unwrap();
+    let decrypt_body = to_bytes(decrypt_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let decrypt_json: Value = serde_json::from_slice(&decrypt_body).unwrap();
 
     let plaintext_out = STANDARD
@@ -323,7 +375,9 @@ async fn rsa_oaep_roundtrip() {
         .await
         .unwrap();
     assert_eq!(keygen_response.status(), StatusCode::OK);
-    let keygen_body = to_bytes(keygen_response.into_body(), usize::MAX).await.unwrap();
+    let keygen_body = to_bytes(keygen_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let keygen_json: Value = serde_json::from_slice(&keygen_body).unwrap();
 
     let plaintext = b"hello rsa oaep";
@@ -337,7 +391,9 @@ async fn rsa_oaep_roundtrip() {
         .await
         .unwrap();
     assert_eq!(encrypt_response.status(), StatusCode::OK);
-    let encrypt_body = to_bytes(encrypt_response.into_body(), usize::MAX).await.unwrap();
+    let encrypt_body = to_bytes(encrypt_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let encrypt_json: Value = serde_json::from_slice(&encrypt_body).unwrap();
 
     let decrypt_payload = json!({
@@ -349,7 +405,9 @@ async fn rsa_oaep_roundtrip() {
         .await
         .unwrap();
     assert_eq!(decrypt_response.status(), StatusCode::OK);
-    let decrypt_body = to_bytes(decrypt_response.into_body(), usize::MAX).await.unwrap();
+    let decrypt_body = to_bytes(decrypt_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let decrypt_json: Value = serde_json::from_slice(&decrypt_body).unwrap();
 
     let plaintext_out = STANDARD
@@ -370,11 +428,17 @@ async fn ed25519_sign_and_verify() {
 
     let keygen_response = app
         .clone()
-        .oneshot(Request::post("/crypto/keys/ed25519").body(Body::empty()).unwrap())
+        .oneshot(
+            Request::post("/crypto/keys/ed25519")
+                .body(Body::empty())
+                .unwrap(),
+        )
         .await
         .unwrap();
     assert_eq!(keygen_response.status(), StatusCode::OK);
-    let keygen_body = to_bytes(keygen_response.into_body(), usize::MAX).await.unwrap();
+    let keygen_body = to_bytes(keygen_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let keygen_json: Value = serde_json::from_slice(&keygen_body).unwrap();
 
     let message = b"hello ed25519";
@@ -396,10 +460,15 @@ async fn ed25519_sign_and_verify() {
         .await
         .unwrap();
     let sign_status = sign_response.status();
-    let sign_body = to_bytes(sign_response.into_body(), usize::MAX).await.unwrap();
+    let sign_body = to_bytes(sign_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     if sign_status != StatusCode::OK {
         let sign_text = String::from_utf8_lossy(&sign_body);
-        panic!("ed25519 sign failed: status={} body={}", sign_status, sign_text);
+        panic!(
+            "ed25519 sign failed: status={} body={}",
+            sign_status, sign_text
+        );
     }
     let sign_json: Value = serde_json::from_slice(&sign_body).unwrap();
 
@@ -413,10 +482,15 @@ async fn ed25519_sign_and_verify() {
         .await
         .unwrap();
     assert_eq!(verify_response.status(), StatusCode::OK);
-    let verify_body = to_bytes(verify_response.into_body(), usize::MAX).await.unwrap();
+    let verify_body = to_bytes(verify_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let verify_json: Value = serde_json::from_slice(&verify_body).unwrap();
 
-    assert_eq!(verify_json.get("valid").and_then(|v| v.as_bool()), Some(true));
+    assert_eq!(
+        verify_json.get("valid").and_then(|v| v.as_bool()),
+        Some(true)
+    );
 }
 
 #[tokio::test]
@@ -431,7 +505,9 @@ async fn rsa_pss_sign_and_verify() {
         .await
         .unwrap();
     assert_eq!(keygen_response.status(), StatusCode::OK);
-    let keygen_body = to_bytes(keygen_response.into_body(), usize::MAX).await.unwrap();
+    let keygen_body = to_bytes(keygen_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let keygen_json: Value = serde_json::from_slice(&keygen_body).unwrap();
 
     let message = b"hello rsa pss";
@@ -445,7 +521,9 @@ async fn rsa_pss_sign_and_verify() {
         .await
         .unwrap();
     assert_eq!(sign_response.status(), StatusCode::OK);
-    let sign_body = to_bytes(sign_response.into_body(), usize::MAX).await.unwrap();
+    let sign_body = to_bytes(sign_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let sign_json: Value = serde_json::from_slice(&sign_body).unwrap();
 
     let verify_payload = json!({
@@ -458,10 +536,15 @@ async fn rsa_pss_sign_and_verify() {
         .await
         .unwrap();
     assert_eq!(verify_response.status(), StatusCode::OK);
-    let verify_body = to_bytes(verify_response.into_body(), usize::MAX).await.unwrap();
+    let verify_body = to_bytes(verify_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let verify_json: Value = serde_json::from_slice(&verify_body).unwrap();
 
-    assert_eq!(verify_json.get("valid").and_then(|v| v.as_bool()), Some(true));
+    assert_eq!(
+        verify_json.get("valid").and_then(|v| v.as_bool()),
+        Some(true)
+    );
 }
 
 #[tokio::test]
@@ -482,7 +565,10 @@ async fn caesar_encrypt_endpoint_works() {
     let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
     let value: Value = serde_json::from_slice(&body).unwrap();
 
-    assert_eq!(value.get("result").and_then(|v| v.as_str()), Some("Cde-zab!"));
+    assert_eq!(
+        value.get("result").and_then(|v| v.as_str()),
+        Some("Cde-zab!")
+    );
 }
 
 #[tokio::test]
@@ -527,7 +613,10 @@ async fn caesar_decrypt_endpoint_works() {
     let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
     let value: Value = serde_json::from_slice(&body).unwrap();
 
-    assert_eq!(value.get("result").and_then(|v| v.as_str()), Some("Abc-xyz!"));
+    assert_eq!(
+        value.get("result").and_then(|v| v.as_str()),
+        Some("Abc-xyz!")
+    );
 }
 
 #[tokio::test]
@@ -541,11 +630,16 @@ async fn vigenere_encrypt_and_decrypt_endpoints_work() {
     });
     let encrypt_response = app
         .clone()
-        .oneshot(to_json_request("/classic/vigenere/encrypt", encrypt_payload))
+        .oneshot(to_json_request(
+            "/classic/vigenere/encrypt",
+            encrypt_payload,
+        ))
         .await
         .unwrap();
     assert_eq!(encrypt_response.status(), StatusCode::OK);
-    let encrypt_body = to_bytes(encrypt_response.into_body(), usize::MAX).await.unwrap();
+    let encrypt_body = to_bytes(encrypt_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let encrypt_json: Value = serde_json::from_slice(&encrypt_body).unwrap();
 
     assert_eq!(
@@ -558,11 +652,16 @@ async fn vigenere_encrypt_and_decrypt_endpoints_work() {
         "key": "LEMON"
     });
     let decrypt_response = app
-        .oneshot(to_json_request("/classic/vigenere/decrypt", decrypt_payload))
+        .oneshot(to_json_request(
+            "/classic/vigenere/decrypt",
+            decrypt_payload,
+        ))
         .await
         .unwrap();
     assert_eq!(decrypt_response.status(), StatusCode::OK);
-    let decrypt_body = to_bytes(decrypt_response.into_body(), usize::MAX).await.unwrap();
+    let decrypt_body = to_bytes(decrypt_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let decrypt_json: Value = serde_json::from_slice(&decrypt_body).unwrap();
 
     assert_eq!(
@@ -587,7 +686,9 @@ async fn affine_encrypt_and_decrypt_endpoints_work() {
         .await
         .unwrap();
     assert_eq!(encrypt_response.status(), StatusCode::OK);
-    let encrypt_body = to_bytes(encrypt_response.into_body(), usize::MAX).await.unwrap();
+    let encrypt_body = to_bytes(encrypt_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let encrypt_json: Value = serde_json::from_slice(&encrypt_body).unwrap();
 
     assert_eq!(
@@ -605,7 +706,9 @@ async fn affine_encrypt_and_decrypt_endpoints_work() {
         .await
         .unwrap();
     assert_eq!(decrypt_response.status(), StatusCode::OK);
-    let decrypt_body = to_bytes(decrypt_response.into_body(), usize::MAX).await.unwrap();
+    let decrypt_body = to_bytes(decrypt_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let decrypt_json: Value = serde_json::from_slice(&decrypt_body).unwrap();
 
     assert_eq!(
@@ -625,11 +728,16 @@ async fn playfair_encrypt_and_decrypt_endpoints_work() {
     });
     let encrypt_response = app
         .clone()
-        .oneshot(to_json_request("/classic/playfair/encrypt", encrypt_payload))
+        .oneshot(to_json_request(
+            "/classic/playfair/encrypt",
+            encrypt_payload,
+        ))
         .await
         .unwrap();
     assert_eq!(encrypt_response.status(), StatusCode::OK);
-    let encrypt_body = to_bytes(encrypt_response.into_body(), usize::MAX).await.unwrap();
+    let encrypt_body = to_bytes(encrypt_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let encrypt_json: Value = serde_json::from_slice(&encrypt_body).unwrap();
     let ciphertext = encrypt_json.get("result").and_then(|v| v.as_str()).unwrap();
 
@@ -640,11 +748,16 @@ async fn playfair_encrypt_and_decrypt_endpoints_work() {
         "key": "PLAYFAIR EXAMPLE"
     });
     let decrypt_response = app
-        .oneshot(to_json_request("/classic/playfair/decrypt", decrypt_payload))
+        .oneshot(to_json_request(
+            "/classic/playfair/decrypt",
+            decrypt_payload,
+        ))
         .await
         .unwrap();
     assert_eq!(decrypt_response.status(), StatusCode::OK);
-    let decrypt_body = to_bytes(decrypt_response.into_body(), usize::MAX).await.unwrap();
+    let decrypt_body = to_bytes(decrypt_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let decrypt_json: Value = serde_json::from_slice(&decrypt_body).unwrap();
     let plaintext = decrypt_json.get("result").and_then(|v| v.as_str()).unwrap();
 
@@ -666,7 +779,9 @@ async fn hill_encrypt_and_decrypt_endpoints_work() {
         .await
         .unwrap();
     assert_eq!(encrypt_response.status(), StatusCode::OK);
-    let encrypt_body = to_bytes(encrypt_response.into_body(), usize::MAX).await.unwrap();
+    let encrypt_body = to_bytes(encrypt_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let encrypt_json: Value = serde_json::from_slice(&encrypt_body).unwrap();
     let ciphertext = encrypt_json.get("result").and_then(|v| v.as_str()).unwrap();
 
@@ -681,10 +796,15 @@ async fn hill_encrypt_and_decrypt_endpoints_work() {
         .await
         .unwrap();
     assert_eq!(decrypt_response.status(), StatusCode::OK);
-    let decrypt_body = to_bytes(decrypt_response.into_body(), usize::MAX).await.unwrap();
+    let decrypt_body = to_bytes(decrypt_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let decrypt_json: Value = serde_json::from_slice(&decrypt_body).unwrap();
 
-    assert_eq!(decrypt_json.get("result").and_then(|v| v.as_str()), Some("HELP"));
+    assert_eq!(
+        decrypt_json.get("result").and_then(|v| v.as_str()),
+        Some("HELP")
+    );
 }
 
 #[tokio::test]
@@ -705,7 +825,9 @@ async fn otp_encrypt_and_decrypt_endpoints_work() {
         .await
         .unwrap();
     assert_eq!(encrypt_response.status(), StatusCode::OK);
-    let encrypt_body = to_bytes(encrypt_response.into_body(), usize::MAX).await.unwrap();
+    let encrypt_body = to_bytes(encrypt_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let encrypt_json: Value = serde_json::from_slice(&encrypt_body).unwrap();
 
     let decrypt_payload = json!({
@@ -717,7 +839,9 @@ async fn otp_encrypt_and_decrypt_endpoints_work() {
         .await
         .unwrap();
     assert_eq!(decrypt_response.status(), StatusCode::OK);
-    let decrypt_body = to_bytes(decrypt_response.into_body(), usize::MAX).await.unwrap();
+    let decrypt_body = to_bytes(decrypt_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let decrypt_json: Value = serde_json::from_slice(&decrypt_body).unwrap();
 
     let decrypted = STANDARD
@@ -744,14 +868,22 @@ async fn frequency_and_index_endpoints_work() {
         .await
         .unwrap();
     assert_eq!(freq_response.status(), StatusCode::OK);
-    let freq_body = to_bytes(freq_response.into_body(), usize::MAX).await.unwrap();
+    let freq_body = to_bytes(freq_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let freq_json: Value = serde_json::from_slice(&freq_body).unwrap();
 
-    assert_eq!(freq_json.get("total_letters").and_then(|v| v.as_i64()), Some(4));
+    assert_eq!(
+        freq_json.get("total_letters").and_then(|v| v.as_i64()),
+        Some(4)
+    );
 
     let ic_payload = json!({ "text": "ABBA" });
     let ic_response = app
-        .oneshot(to_json_request("/classic/analysis/index-coincidence", ic_payload))
+        .oneshot(to_json_request(
+            "/classic/analysis/index-coincidence",
+            ic_payload,
+        ))
         .await
         .unwrap();
     assert_eq!(ic_response.status(), StatusCode::OK);
@@ -804,10 +936,7 @@ async fn kasiski_endpoint_works() {
     let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
     let value: Value = serde_json::from_slice(&body).unwrap();
 
-    let distances = value
-        .get("distances")
-        .and_then(|v| v.as_array())
-        .unwrap();
+    let distances = value.get("distances").and_then(|v| v.as_array()).unwrap();
     assert!(distances.iter().any(|v| v.as_i64() == Some(6)));
 }
 
@@ -821,17 +950,17 @@ async fn vigenere_key_length_endpoint_works() {
         "max_length": 6
     });
     let response = app
-        .oneshot(to_json_request("/classic/analysis/vigenere/key-length", payload))
+        .oneshot(to_json_request(
+            "/classic/analysis/vigenere/key-length",
+            payload,
+        ))
         .await
         .unwrap();
 
     assert_eq!(response.status(), StatusCode::OK);
     let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
     let value: Value = serde_json::from_slice(&body).unwrap();
-    let candidates = value
-        .get("candidates")
-        .and_then(|v| v.as_array())
-        .unwrap();
+    let candidates = value.get("candidates").and_then(|v| v.as_array()).unwrap();
 
     assert_eq!(candidates.len(), 6);
 }
@@ -846,7 +975,10 @@ async fn vigenere_estimate_key_endpoint_works() {
         "key_length": 3
     });
     let response = app
-        .oneshot(to_json_request("/classic/analysis/vigenere/estimate-key", payload))
+        .oneshot(to_json_request(
+            "/classic/analysis/vigenere/estimate-key",
+            payload,
+        ))
         .await
         .unwrap();
 
@@ -873,7 +1005,9 @@ async fn rc4_roundtrip_endpoint_works() {
         .await
         .unwrap();
     assert_eq!(encrypt_response.status(), StatusCode::OK);
-    let encrypt_body = to_bytes(encrypt_response.into_body(), usize::MAX).await.unwrap();
+    let encrypt_body = to_bytes(encrypt_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let encrypt_json: Value = serde_json::from_slice(&encrypt_body).unwrap();
 
     let decrypt_payload = json!({
@@ -885,10 +1019,15 @@ async fn rc4_roundtrip_endpoint_works() {
         .await
         .unwrap();
     assert_eq!(decrypt_response.status(), StatusCode::OK);
-    let decrypt_body = to_bytes(decrypt_response.into_body(), usize::MAX).await.unwrap();
+    let decrypt_body = to_bytes(decrypt_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let decrypt_json: Value = serde_json::from_slice(&decrypt_body).unwrap();
 
-    assert_eq!(decrypt_json.get("result").and_then(|v| v.as_str()), Some("Hello RC4"));
+    assert_eq!(
+        decrypt_json.get("result").and_then(|v| v.as_str()),
+        Some("Hello RC4")
+    );
 }
 
 #[tokio::test]
@@ -907,7 +1046,9 @@ async fn des_roundtrip_endpoint_works() {
         .await
         .unwrap();
     assert_eq!(encrypt_response.status(), StatusCode::OK);
-    let encrypt_body = to_bytes(encrypt_response.into_body(), usize::MAX).await.unwrap();
+    let encrypt_body = to_bytes(encrypt_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let encrypt_json: Value = serde_json::from_slice(&encrypt_body).unwrap();
 
     let decrypt_payload = json!({
@@ -920,10 +1061,15 @@ async fn des_roundtrip_endpoint_works() {
         .await
         .unwrap();
     assert_eq!(decrypt_response.status(), StatusCode::OK);
-    let decrypt_body = to_bytes(decrypt_response.into_body(), usize::MAX).await.unwrap();
+    let decrypt_body = to_bytes(decrypt_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let decrypt_json: Value = serde_json::from_slice(&decrypt_body).unwrap();
 
-    assert_eq!(decrypt_json.get("result").and_then(|v| v.as_str()), Some("hello des"));
+    assert_eq!(
+        decrypt_json.get("result").and_then(|v| v.as_str()),
+        Some("hello des")
+    );
 }
 
 #[tokio::test]
@@ -942,10 +1088,15 @@ async fn aes_roundtrip_endpoint_works() {
         .await
         .unwrap();
     assert_eq!(encrypt_response.status(), StatusCode::OK);
-    let encrypt_body = to_bytes(encrypt_response.into_body(), usize::MAX).await.unwrap();
+    let encrypt_body = to_bytes(encrypt_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let encrypt_json: Value = serde_json::from_slice(&encrypt_body).unwrap();
 
-    assert_eq!(encrypt_json.get("key_size").and_then(|v| v.as_str()), Some("AES-128"));
+    assert_eq!(
+        encrypt_json.get("key_size").and_then(|v| v.as_str()),
+        Some("AES-128")
+    );
 
     let decrypt_payload = json!({
         "ciphertext_hex": encrypt_json["ciphertext_hex"],
@@ -957,10 +1108,15 @@ async fn aes_roundtrip_endpoint_works() {
         .await
         .unwrap();
     assert_eq!(decrypt_response.status(), StatusCode::OK);
-    let decrypt_body = to_bytes(decrypt_response.into_body(), usize::MAX).await.unwrap();
+    let decrypt_body = to_bytes(decrypt_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let decrypt_json: Value = serde_json::from_slice(&decrypt_body).unwrap();
 
-    assert_eq!(decrypt_json.get("result").and_then(|v| v.as_str()), Some("hello aes"));
+    assert_eq!(
+        decrypt_json.get("result").and_then(|v| v.as_str()),
+        Some("hello aes")
+    );
 }
 
 #[tokio::test]
@@ -975,11 +1131,16 @@ async fn twofish_roundtrip_endpoint_works() {
     });
     let encrypt_response = app
         .clone()
-        .oneshot(to_json_request("/symmetric/twofish/encrypt", encrypt_payload))
+        .oneshot(to_json_request(
+            "/symmetric/twofish/encrypt",
+            encrypt_payload,
+        ))
         .await
         .unwrap();
     assert_eq!(encrypt_response.status(), StatusCode::OK);
-    let encrypt_body = to_bytes(encrypt_response.into_body(), usize::MAX).await.unwrap();
+    let encrypt_body = to_bytes(encrypt_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let encrypt_json: Value = serde_json::from_slice(&encrypt_body).unwrap();
 
     let decrypt_payload = json!({
@@ -988,11 +1149,16 @@ async fn twofish_roundtrip_endpoint_works() {
         "iv": "FEDCBA9876543210"
     });
     let decrypt_response = app
-        .oneshot(to_json_request("/symmetric/twofish/decrypt", decrypt_payload))
+        .oneshot(to_json_request(
+            "/symmetric/twofish/decrypt",
+            decrypt_payload,
+        ))
         .await
         .unwrap();
     assert_eq!(decrypt_response.status(), StatusCode::OK);
-    let decrypt_body = to_bytes(decrypt_response.into_body(), usize::MAX).await.unwrap();
+    let decrypt_body = to_bytes(decrypt_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let decrypt_json: Value = serde_json::from_slice(&decrypt_body).unwrap();
 
     assert_eq!(
@@ -1013,11 +1179,16 @@ async fn serpent_roundtrip_endpoint_works() {
     });
     let encrypt_response = app
         .clone()
-        .oneshot(to_json_request("/symmetric/serpent/encrypt", encrypt_payload))
+        .oneshot(to_json_request(
+            "/symmetric/serpent/encrypt",
+            encrypt_payload,
+        ))
         .await
         .unwrap();
     assert_eq!(encrypt_response.status(), StatusCode::OK);
-    let encrypt_body = to_bytes(encrypt_response.into_body(), usize::MAX).await.unwrap();
+    let encrypt_body = to_bytes(encrypt_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let encrypt_json: Value = serde_json::from_slice(&encrypt_body).unwrap();
 
     let decrypt_payload = json!({
@@ -1026,11 +1197,16 @@ async fn serpent_roundtrip_endpoint_works() {
         "iv": "FEDCBA9876543210"
     });
     let decrypt_response = app
-        .oneshot(to_json_request("/symmetric/serpent/decrypt", decrypt_payload))
+        .oneshot(to_json_request(
+            "/symmetric/serpent/decrypt",
+            decrypt_payload,
+        ))
         .await
         .unwrap();
     assert_eq!(decrypt_response.status(), StatusCode::OK);
-    let decrypt_body = to_bytes(decrypt_response.into_body(), usize::MAX).await.unwrap();
+    let decrypt_body = to_bytes(decrypt_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let decrypt_json: Value = serde_json::from_slice(&decrypt_body).unwrap();
 
     assert_eq!(
@@ -1055,7 +1231,9 @@ async fn rc6_roundtrip_endpoint_works() {
         .await
         .unwrap();
     assert_eq!(encrypt_response.status(), StatusCode::OK);
-    let encrypt_body = to_bytes(encrypt_response.into_body(), usize::MAX).await.unwrap();
+    let encrypt_body = to_bytes(encrypt_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let encrypt_json: Value = serde_json::from_slice(&encrypt_body).unwrap();
 
     let decrypt_payload = json!({
@@ -1068,7 +1246,9 @@ async fn rc6_roundtrip_endpoint_works() {
         .await
         .unwrap();
     assert_eq!(decrypt_response.status(), StatusCode::OK);
-    let decrypt_body = to_bytes(decrypt_response.into_body(), usize::MAX).await.unwrap();
+    let decrypt_body = to_bytes(decrypt_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let decrypt_json: Value = serde_json::from_slice(&decrypt_body).unwrap();
 
     assert_eq!(
@@ -1089,11 +1269,16 @@ async fn rijndael_roundtrip_endpoint_works() {
     });
     let encrypt_response = app
         .clone()
-        .oneshot(to_json_request("/symmetric/rijndael/encrypt", encrypt_payload))
+        .oneshot(to_json_request(
+            "/symmetric/rijndael/encrypt",
+            encrypt_payload,
+        ))
         .await
         .unwrap();
     assert_eq!(encrypt_response.status(), StatusCode::OK);
-    let encrypt_body = to_bytes(encrypt_response.into_body(), usize::MAX).await.unwrap();
+    let encrypt_body = to_bytes(encrypt_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let encrypt_json: Value = serde_json::from_slice(&encrypt_body).unwrap();
 
     let decrypt_payload = json!({
@@ -1102,11 +1287,16 @@ async fn rijndael_roundtrip_endpoint_works() {
         "iv": "FEDCBA9876543210"
     });
     let decrypt_response = app
-        .oneshot(to_json_request("/symmetric/rijndael/decrypt", decrypt_payload))
+        .oneshot(to_json_request(
+            "/symmetric/rijndael/decrypt",
+            decrypt_payload,
+        ))
         .await
         .unwrap();
     assert_eq!(decrypt_response.status(), StatusCode::OK);
-    let decrypt_body = to_bytes(decrypt_response.into_body(), usize::MAX).await.unwrap();
+    let decrypt_body = to_bytes(decrypt_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let decrypt_json: Value = serde_json::from_slice(&decrypt_body).unwrap();
 
     assert_eq!(
@@ -1132,7 +1322,9 @@ async fn rsa_signature_roundtrip_endpoint_works() {
         .await
         .unwrap();
     assert_eq!(sign_response.status(), StatusCode::OK);
-    let sign_body = to_bytes(sign_response.into_body(), usize::MAX).await.unwrap();
+    let sign_body = to_bytes(sign_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let sign_json: Value = serde_json::from_slice(&sign_body).unwrap();
 
     let verify_payload = json!({
@@ -1147,10 +1339,15 @@ async fn rsa_signature_roundtrip_endpoint_works() {
         .await
         .unwrap();
     assert_eq!(verify_response.status(), StatusCode::OK);
-    let verify_body = to_bytes(verify_response.into_body(), usize::MAX).await.unwrap();
+    let verify_body = to_bytes(verify_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let verify_json: Value = serde_json::from_slice(&verify_body).unwrap();
 
-    assert_eq!(verify_json.get("valid").and_then(|v| v.as_bool()), Some(true));
+    assert_eq!(
+        verify_json.get("valid").and_then(|v| v.as_bool()),
+        Some(true)
+    );
 }
 
 #[tokio::test]
@@ -1179,7 +1376,9 @@ async fn comms_secure_channel_roundtrip_works() {
         .await
         .unwrap();
     assert_eq!(send_response.status(), StatusCode::OK);
-    let send_body = to_bytes(send_response.into_body(), usize::MAX).await.unwrap();
+    let send_body = to_bytes(send_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let send_json: Value = serde_json::from_slice(&send_body).unwrap();
 
     let open_payload = json!({
@@ -1196,10 +1395,15 @@ async fn comms_secure_channel_roundtrip_works() {
         .await
         .unwrap();
     assert_eq!(open_response.status(), StatusCode::OK);
-    let open_body = to_bytes(open_response.into_body(), usize::MAX).await.unwrap();
+    let open_body = to_bytes(open_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let open_json: Value = serde_json::from_slice(&open_body).unwrap();
 
-    assert_eq!(open_json.get("plaintext").and_then(|v| v.as_str()), Some("bonjour"));
+    assert_eq!(
+        open_json.get("plaintext").and_then(|v| v.as_str()),
+        Some("bonjour")
+    );
 }
 
 #[tokio::test]
@@ -1251,7 +1455,9 @@ async fn voting_sign_and_tally_works() {
         .await
         .unwrap();
     assert_eq!(tally_response.status(), StatusCode::OK);
-    let tally_body = to_bytes(tally_response.into_body(), usize::MAX).await.unwrap();
+    let tally_body = to_bytes(tally_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let tally_json: Value = serde_json::from_slice(&tally_body).unwrap();
 
     let results = tally_json
@@ -1287,7 +1493,9 @@ async fn dsa_sign_and_verify_endpoint_works() {
         .await
         .unwrap();
     assert_eq!(sign_response.status(), StatusCode::OK);
-    let sign_body = to_bytes(sign_response.into_body(), usize::MAX).await.unwrap();
+    let sign_body = to_bytes(sign_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let sign_json: Value = serde_json::from_slice(&sign_body).unwrap();
 
     let verify_payload = json!({
@@ -1304,10 +1512,15 @@ async fn dsa_sign_and_verify_endpoint_works() {
         .await
         .unwrap();
     assert_eq!(verify_response.status(), StatusCode::OK);
-    let verify_body = to_bytes(verify_response.into_body(), usize::MAX).await.unwrap();
+    let verify_body = to_bytes(verify_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let verify_json: Value = serde_json::from_slice(&verify_body).unwrap();
 
-    assert_eq!(verify_json.get("valid").and_then(|v| v.as_bool()), Some(true));
+    assert_eq!(
+        verify_json.get("valid").and_then(|v| v.as_bool()),
+        Some(true)
+    );
 }
 
 #[tokio::test]
@@ -1329,7 +1542,9 @@ async fn ecdsa_sign_and_verify_endpoint_works() {
         .await
         .unwrap();
     assert_eq!(sign_response.status(), StatusCode::OK);
-    let sign_body = to_bytes(sign_response.into_body(), usize::MAX).await.unwrap();
+    let sign_body = to_bytes(sign_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let sign_json: Value = serde_json::from_slice(&sign_body).unwrap();
 
     let verify_payload = json!({
@@ -1344,10 +1559,15 @@ async fn ecdsa_sign_and_verify_endpoint_works() {
         .await
         .unwrap();
     assert_eq!(verify_response.status(), StatusCode::OK);
-    let verify_body = to_bytes(verify_response.into_body(), usize::MAX).await.unwrap();
+    let verify_body = to_bytes(verify_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let verify_json: Value = serde_json::from_slice(&verify_body).unwrap();
 
-    assert_eq!(verify_json.get("valid").and_then(|v| v.as_bool()), Some(true));
+    assert_eq!(
+        verify_json.get("valid").and_then(|v| v.as_bool()),
+        Some(true)
+    );
 }
 
 #[tokio::test]
@@ -1363,11 +1583,16 @@ async fn rsa_pkcs1v15_sign_and_verify_endpoint_works() {
     });
     let sign_response = app
         .clone()
-        .oneshot(to_json_request("/signature/rsa/pkcs1v15/sign", sign_payload))
+        .oneshot(to_json_request(
+            "/signature/rsa/pkcs1v15/sign",
+            sign_payload,
+        ))
         .await
         .unwrap();
     assert_eq!(sign_response.status(), StatusCode::OK);
-    let sign_body = to_bytes(sign_response.into_body(), usize::MAX).await.unwrap();
+    let sign_body = to_bytes(sign_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let sign_json: Value = serde_json::from_slice(&sign_body).unwrap();
 
     let verify_payload = json!({
@@ -1378,14 +1603,22 @@ async fn rsa_pkcs1v15_sign_and_verify_endpoint_works() {
         "signature": sign_json["signature"]
     });
     let verify_response = app
-        .oneshot(to_json_request("/signature/rsa/pkcs1v15/verify", verify_payload))
+        .oneshot(to_json_request(
+            "/signature/rsa/pkcs1v15/verify",
+            verify_payload,
+        ))
         .await
         .unwrap();
     assert_eq!(verify_response.status(), StatusCode::OK);
-    let verify_body = to_bytes(verify_response.into_body(), usize::MAX).await.unwrap();
+    let verify_body = to_bytes(verify_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let verify_json: Value = serde_json::from_slice(&verify_body).unwrap();
 
-    assert_eq!(verify_json.get("valid").and_then(|v| v.as_bool()), Some(true));
+    assert_eq!(
+        verify_json.get("valid").and_then(|v| v.as_bool()),
+        Some(true)
+    );
 }
 
 #[tokio::test]
@@ -1409,7 +1642,9 @@ async fn elgamal_signature_sign_and_verify_endpoint_works() {
         .await
         .unwrap();
     assert_eq!(sign_response.status(), StatusCode::OK);
-    let sign_body = to_bytes(sign_response.into_body(), usize::MAX).await.unwrap();
+    let sign_body = to_bytes(sign_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let sign_json: Value = serde_json::from_slice(&sign_body).unwrap();
 
     let verify_payload = json!({
@@ -1425,10 +1660,15 @@ async fn elgamal_signature_sign_and_verify_endpoint_works() {
         .await
         .unwrap();
     assert_eq!(verify_response.status(), StatusCode::OK);
-    let verify_body = to_bytes(verify_response.into_body(), usize::MAX).await.unwrap();
+    let verify_body = to_bytes(verify_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let verify_json: Value = serde_json::from_slice(&verify_body).unwrap();
 
-    assert_eq!(verify_json.get("valid").and_then(|v| v.as_bool()), Some(true));
+    assert_eq!(
+        verify_json.get("valid").and_then(|v| v.as_bool()),
+        Some(true)
+    );
 }
 
 #[tokio::test]
@@ -1512,7 +1752,9 @@ async fn md5_sha512_and_hmac_endpoints_work() {
         .await
         .unwrap();
     assert_eq!(md5_response.status(), StatusCode::OK);
-    let md5_body = to_bytes(md5_response.into_body(), usize::MAX).await.unwrap();
+    let md5_body = to_bytes(md5_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let md5_json: Value = serde_json::from_slice(&md5_body).unwrap();
 
     assert_eq!(
@@ -1527,7 +1769,9 @@ async fn md5_sha512_and_hmac_endpoints_work() {
         .await
         .unwrap();
     assert_eq!(sha_response.status(), StatusCode::OK);
-    let sha_body = to_bytes(sha_response.into_body(), usize::MAX).await.unwrap();
+    let sha_body = to_bytes(sha_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let sha_json: Value = serde_json::from_slice(&sha_body).unwrap();
 
     assert_eq!(
@@ -1544,11 +1788,16 @@ async fn md5_sha512_and_hmac_endpoints_work() {
         .await
         .unwrap();
     assert_eq!(hmac_response.status(), StatusCode::OK);
-    let hmac_body = to_bytes(hmac_response.into_body(), usize::MAX).await.unwrap();
+    let hmac_body = to_bytes(hmac_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let hmac_json: Value = serde_json::from_slice(&hmac_body).unwrap();
     let expected = hmac_impl::hmac_sha256(b"secret", "message").unwrap();
 
-    assert_eq!(hmac_json.get("digest").and_then(|v| v.as_str()), Some(expected.as_str()));
+    assert_eq!(
+        hmac_json.get("digest").and_then(|v| v.as_str()),
+        Some(expected.as_str())
+    );
 }
 
 #[tokio::test]
@@ -1593,7 +1842,9 @@ async fn rsa_encrypt_and_decrypt_endpoints_work() {
         .await
         .unwrap();
     assert_eq!(encrypt_response.status(), StatusCode::OK);
-    let encrypt_body = to_bytes(encrypt_response.into_body(), usize::MAX).await.unwrap();
+    let encrypt_body = to_bytes(encrypt_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let encrypt_json: Value = serde_json::from_slice(&encrypt_body).unwrap();
 
     let decrypt_payload = json!({
@@ -1607,10 +1858,15 @@ async fn rsa_encrypt_and_decrypt_endpoints_work() {
         .await
         .unwrap();
     assert_eq!(decrypt_response.status(), StatusCode::OK);
-    let decrypt_body = to_bytes(decrypt_response.into_body(), usize::MAX).await.unwrap();
+    let decrypt_body = to_bytes(decrypt_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let decrypt_json: Value = serde_json::from_slice(&decrypt_body).unwrap();
 
-    assert_eq!(decrypt_json.get("message").and_then(|v| v.as_i64()), Some(65));
+    assert_eq!(
+        decrypt_json.get("message").and_then(|v| v.as_i64()),
+        Some(65)
+    );
 }
 
 #[tokio::test]
@@ -1627,11 +1883,16 @@ async fn elgamal_encrypt_and_decrypt_endpoints_work() {
     });
     let encrypt_response = app
         .clone()
-        .oneshot(to_json_request("/asymmetric/elgamal/encrypt", encrypt_payload))
+        .oneshot(to_json_request(
+            "/asymmetric/elgamal/encrypt",
+            encrypt_payload,
+        ))
         .await
         .unwrap();
     assert_eq!(encrypt_response.status(), StatusCode::OK);
-    let encrypt_body = to_bytes(encrypt_response.into_body(), usize::MAX).await.unwrap();
+    let encrypt_body = to_bytes(encrypt_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let encrypt_json: Value = serde_json::from_slice(&encrypt_body).unwrap();
 
     let decrypt_payload = json!({
@@ -1642,14 +1903,22 @@ async fn elgamal_encrypt_and_decrypt_endpoints_work() {
         "c2": encrypt_json["c2"]
     });
     let decrypt_response = app
-        .oneshot(to_json_request("/asymmetric/elgamal/decrypt", decrypt_payload))
+        .oneshot(to_json_request(
+            "/asymmetric/elgamal/decrypt",
+            decrypt_payload,
+        ))
         .await
         .unwrap();
     assert_eq!(decrypt_response.status(), StatusCode::OK);
-    let decrypt_body = to_bytes(decrypt_response.into_body(), usize::MAX).await.unwrap();
+    let decrypt_body = to_bytes(decrypt_response.into_body(), usize::MAX)
+        .await
+        .unwrap();
     let decrypt_json: Value = serde_json::from_slice(&decrypt_body).unwrap();
 
-    assert_eq!(decrypt_json.get("message").and_then(|v| v.as_i64()), Some(10));
+    assert_eq!(
+        decrypt_json.get("message").and_then(|v| v.as_i64()),
+        Some(10)
+    );
 }
 
 #[tokio::test]

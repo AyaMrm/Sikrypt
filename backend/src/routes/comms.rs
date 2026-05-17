@@ -1,4 +1,4 @@
-use axum::{extract::Json, http::StatusCode, routing::post, Router};
+use axum::{Router, extract::Json, http::StatusCode, routing::post};
 
 use crate::{
     algorithms::{
@@ -11,9 +11,9 @@ use crate::{
     },
     errors::ApiError,
     models::comms::{
-        CandidateTally, SecureChannelOpenRequest, SecureChannelOpenResponse, SecureChannelSendRequest,
-        SecureChannelSendResponse, SignBallotRequest, SignBallotResponse, SignedBallotInput,
-        TallyVotesRequest, TallyVotesResponse,
+        CandidateTally, SecureChannelOpenRequest, SecureChannelOpenResponse,
+        SecureChannelSendRequest, SecureChannelSendResponse, SignBallotRequest, SignBallotResponse,
+        SignedBallotInput, TallyVotesRequest, TallyVotesResponse,
     },
 };
 
@@ -200,7 +200,8 @@ async fn tally_votes(
             "The demo voting key pair could not be generated",
         )
     })?;
-    let signed_ballots: Vec<SignedBallot> = payload.ballots.into_iter().map(map_signed_ballot).collect();
+    let signed_ballots: Vec<SignedBallot> =
+        payload.ballots.into_iter().map(map_signed_ballot).collect();
     let tally = voting::tally_votes(&signed_ballots, &key_pair).map_err(map_voting_error)?;
 
     let mut results: Vec<CandidateTally> = tally

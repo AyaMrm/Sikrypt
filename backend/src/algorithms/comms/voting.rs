@@ -72,7 +72,7 @@ pub fn demo_voter_key_pair() -> Result<RsaKeyPair, rsa::RsaError> {
 
 #[cfg(test)]
 mod tests {
-    use super::{demo_voter_key_pair, sign_ballot, tally_votes, Ballot, VotingError};
+    use super::{Ballot, VotingError, demo_voter_key_pair, sign_ballot, tally_votes};
 
     #[test]
     fn tallies_verified_votes() {

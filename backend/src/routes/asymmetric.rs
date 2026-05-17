@@ -1,6 +1,6 @@
-use axum::{extract::Json, http::StatusCode, routing::post, Router};
-use base64::engine::general_purpose::STANDARD;
+use axum::{Router, extract::Json, http::StatusCode, routing::post};
 use base64::Engine;
+use base64::engine::general_purpose::STANDARD;
 
 use crate::{
     algorithms::asymmetric::{
@@ -11,10 +11,10 @@ use crate::{
     },
     errors::ApiError,
     models::asymmetric::{
-        DiffieHellmanExchangeRequest, DiffieHellmanExchangeResponse, ElGamalEncryptRequest,
-        ElGamalEncryptResponse, ElGamalDecryptRequest, ElGamalDecryptResponse, RsaDecryptRequest,
-        RsaDecryptResponse, RsaEncryptRequest, RsaEncryptResponse, EccDeriveRequest,
-        EccDeriveResponse, EccKeyGenResponse,
+        DiffieHellmanExchangeRequest, DiffieHellmanExchangeResponse, EccDeriveRequest,
+        EccDeriveResponse, EccKeyGenResponse, ElGamalDecryptRequest, ElGamalDecryptResponse,
+        ElGamalEncryptRequest, ElGamalEncryptResponse, RsaDecryptRequest, RsaDecryptResponse,
+        RsaEncryptRequest, RsaEncryptResponse,
     },
 };
 
@@ -130,12 +130,9 @@ async fn diffie_hellman_exchange(
         p: payload.p,
         g: payload.g,
     };
-    let exchange = diffie_hellman::perform_key_exchange(
-        &setup,
-        payload.alice_private,
-        payload.bob_private,
-    )
-    .map_err(map_diffie_hellman_error)?;
+    let exchange =
+        diffie_hellman::perform_key_exchange(&setup, payload.alice_private, payload.bob_private)
+            .map_err(map_diffie_hellman_error)?;
 
     Ok(Json(DiffieHellmanExchangeResponse {
         alice_public: exchange.alice_public,
@@ -147,7 +144,8 @@ async fn diffie_hellman_exchange(
 async fn rsa_encrypt(
     Json(payload): Json<RsaEncryptRequest>,
 ) -> Result<Json<RsaEncryptResponse>, ApiError> {
-    let key_pair = rsa::generate_key_pair(payload.p, payload.q, payload.e).map_err(map_rsa_error)?;
+    let key_pair =
+        rsa::generate_key_pair(payload.p, payload.q, payload.e).map_err(map_rsa_error)?;
     let ciphertext = rsa::encrypt(payload.message, &key_pair).map_err(map_rsa_error)?;
 
     Ok(Json(RsaEncryptResponse {
@@ -161,7 +159,8 @@ async fn rsa_encrypt(
 async fn rsa_decrypt(
     Json(payload): Json<RsaDecryptRequest>,
 ) -> Result<Json<RsaDecryptResponse>, ApiError> {
-    let key_pair = rsa::generate_key_pair(payload.p, payload.q, payload.e).map_err(map_rsa_error)?;
+    let key_pair =
+        rsa::generate_key_pair(payload.p, payload.q, payload.e).map_err(map_rsa_error)?;
     if payload.ciphertext >= key_pair.n {
         return Err(ApiError::new(
             StatusCode::BAD_REQUEST,
@@ -229,8 +228,8 @@ async fn ecc_derive(
 ) -> Result<Json<EccDeriveResponse>, ApiError> {
     let private_key = decode_base64(&payload.private_key_base64, "private_key_base64")?;
     let peer_public_key = decode_base64(&payload.peer_public_key_base64, "peer_public_key_base64")?;
-    let shared_secret = ecc::derive_shared_secret(&private_key, &peer_public_key)
-        .map_err(map_ecc_error)?;
+    let shared_secret =
+        ecc::derive_shared_secret(&private_key, &peer_public_key).map_err(map_ecc_error)?;
 
     Ok(Json(EccDeriveResponse {
         shared_secret_base64: STANDARD.encode(shared_secret),
@@ -243,7 +242,7 @@ pub fn router() -> Router {
         .route("/asymmetric/rsa/encrypt", post(rsa_encrypt))
         .route("/asymmetric/rsa/decrypt", post(rsa_decrypt))
         .route("/asymmetric/elgamal/encrypt", post(elgamal_encrypt))
-    .route("/asymmetric/elgamal/decrypt", post(elgamal_decrypt))
-    .route("/asymmetric/ecc/p256/keygen", post(ecc_keygen))
-    .route("/asymmetric/ecc/p256/derive", post(ecc_derive))
+        .route("/asymmetric/elgamal/decrypt", post(elgamal_decrypt))
+        .route("/asymmetric/ecc/p256/keygen", post(ecc_keygen))
+        .route("/asymmetric/ecc/p256/derive", post(ecc_derive))
 }

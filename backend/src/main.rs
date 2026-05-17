@@ -21,7 +21,10 @@ async fn main() {
         .expect("failed to bind TCP listener");
 
     tracing::info!("Sikrypt backend listening on http://{address}");
-    axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>())
-        .await
-        .expect("failed to start Axum server");
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await
+    .expect("failed to start Axum server");
 }

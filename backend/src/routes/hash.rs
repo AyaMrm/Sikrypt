@@ -1,4 +1,4 @@
-use axum::{extract::Json, http::StatusCode, routing::post, Router};
+use axum::{Router, extract::Json, http::StatusCode, routing::post};
 
 use crate::{
     algorithms::hash::{hmac_impl, md5, sha},

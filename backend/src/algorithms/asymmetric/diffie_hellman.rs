@@ -45,7 +45,10 @@ fn validate_setup(setup: &DiffieHellmanSetup) -> Result<(), DiffieHellmanError> 
     Ok(())
 }
 
-fn validate_private_key(setup: &DiffieHellmanSetup, private_key: u128) -> Result<(), DiffieHellmanError> {
+fn validate_private_key(
+    setup: &DiffieHellmanSetup,
+    private_key: u128,
+) -> Result<(), DiffieHellmanError> {
     validate_setup(setup)?;
 
     if private_key == 0 || private_key >= setup.p {
@@ -93,7 +96,7 @@ pub fn perform_key_exchange(
 
 #[cfg(test)]
 mod tests {
-    use super::{compute_public_key, perform_key_exchange, DiffieHellmanError, DiffieHellmanSetup};
+    use super::{DiffieHellmanError, DiffieHellmanSetup, compute_public_key, perform_key_exchange};
 
     #[test]
     fn computes_matching_shared_secret() {

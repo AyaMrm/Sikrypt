@@ -1,5 +1,5 @@
-use rand::rngs::OsRng;
 use rand::RngCore;
+use rand::rngs::OsRng;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShamirShare {

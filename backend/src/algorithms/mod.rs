@@ -9,8 +9,8 @@ pub mod hash;
 #[allow(dead_code)]
 pub mod homomorphic;
 #[allow(dead_code)]
-pub mod signature;
-#[allow(dead_code)]
 pub mod secret_sharing;
+#[allow(dead_code)]
+pub mod signature;
 #[allow(dead_code)]
 pub mod symmetric;

@@ -1,4 +1,4 @@
-use axum::{extract::Json, http::StatusCode, routing::post, Router};
+use axum::{Router, extract::Json, http::StatusCode, routing::post};
 
 use crate::{
     algorithms::{
@@ -147,7 +147,8 @@ fn map_ecdsa_error(error: EcdsaError) -> ApiError {
 async fn rsa_sign(
     Json(payload): Json<RsaSignatureRequest>,
 ) -> Result<Json<RsaSignatureResponse>, ApiError> {
-    let key_pair = rsa::generate_key_pair(payload.p, payload.q, payload.e).map_err(map_rsa_error)?;
+    let key_pair =
+        rsa::generate_key_pair(payload.p, payload.q, payload.e).map_err(map_rsa_error)?;
     let signature = rsa_pss::sign(&payload.message, &key_pair).map_err(map_rsa_pss_error)?;
 
     Ok(Json(RsaSignatureResponse {
@@ -158,11 +159,13 @@ async fn rsa_sign(
 async fn rsa_verify(
     Json(payload): Json<RsaVerifyRequest>,
 ) -> Result<Json<VerifyResponse>, ApiError> {
-    let key_pair = rsa::generate_key_pair(payload.p, payload.q, payload.e).map_err(map_rsa_error)?;
+    let key_pair =
+        rsa::generate_key_pair(payload.p, payload.q, payload.e).map_err(map_rsa_error)?;
     let signature = RsaPssSignature {
         signature: payload.signature,
     };
-    let valid = rsa_pss::verify(&payload.message, &signature, &key_pair).map_err(map_rsa_pss_error)?;
+    let valid =
+        rsa_pss::verify(&payload.message, &signature, &key_pair).map_err(map_rsa_pss_error)?;
 
     Ok(Json(VerifyResponse { valid }))
 }
@@ -170,7 +173,8 @@ async fn rsa_verify(
 async fn rsa_pkcs1v15_sign(
     Json(payload): Json<RsaSignatureRequest>,
 ) -> Result<Json<RsaSignatureResponse>, ApiError> {
-    let key_pair = rsa::generate_key_pair(payload.p, payload.q, payload.e).map_err(map_rsa_error)?;
+    let key_pair =
+        rsa::generate_key_pair(payload.p, payload.q, payload.e).map_err(map_rsa_error)?;
     let signature =
         rsa_pkcs1v15::sign(&payload.message, &key_pair).map_err(map_rsa_pkcs1v15_error)?;
 
@@ -182,12 +186,13 @@ async fn rsa_pkcs1v15_sign(
 async fn rsa_pkcs1v15_verify(
     Json(payload): Json<RsaVerifyRequest>,
 ) -> Result<Json<VerifyResponse>, ApiError> {
-    let key_pair = rsa::generate_key_pair(payload.p, payload.q, payload.e).map_err(map_rsa_error)?;
+    let key_pair =
+        rsa::generate_key_pair(payload.p, payload.q, payload.e).map_err(map_rsa_error)?;
     let signature = RsaPkcs1v15Signature {
         signature: payload.signature,
     };
-    let valid =
-        rsa_pkcs1v15::verify(&payload.message, &signature, &key_pair).map_err(map_rsa_pkcs1v15_error)?;
+    let valid = rsa_pkcs1v15::verify(&payload.message, &signature, &key_pair)
+        .map_err(map_rsa_pkcs1v15_error)?;
 
     Ok(Json(VerifyResponse { valid }))
 }
@@ -226,8 +231,13 @@ async fn dsa_verify(
         r: payload.r,
         s: payload.s,
     };
-    let valid = dsa::verify(&parameters, payload.public_key, &payload.message, &signature)
-        .map_err(map_dsa_error)?;
+    let valid = dsa::verify(
+        &parameters,
+        payload.public_key,
+        &payload.message,
+        &signature,
+    )
+    .map_err(map_dsa_error)?;
 
     Ok(Json(VerifyResponse { valid }))
 }
@@ -262,8 +272,8 @@ async fn ecdsa_verify(
         r: payload.r,
         s: payload.s,
     };
-    let valid = ecdsa::verify(&curve, public_key, &payload.message, &signature)
-        .map_err(map_ecdsa_error)?;
+    let valid =
+        ecdsa::verify(&curve, public_key, &payload.message, &signature).map_err(map_ecdsa_error)?;
 
     Ok(Json(VerifyResponse { valid }))
 }
@@ -309,12 +319,12 @@ pub fn router() -> Router {
     Router::new()
         .route("/signature/rsa/sign", post(rsa_sign))
         .route("/signature/rsa/verify", post(rsa_verify))
-    .route("/signature/rsa/pkcs1v15/sign", post(rsa_pkcs1v15_sign))
-    .route("/signature/rsa/pkcs1v15/verify", post(rsa_pkcs1v15_verify))
+        .route("/signature/rsa/pkcs1v15/sign", post(rsa_pkcs1v15_sign))
+        .route("/signature/rsa/pkcs1v15/verify", post(rsa_pkcs1v15_verify))
         .route("/signature/dsa/sign", post(dsa_sign))
         .route("/signature/dsa/verify", post(dsa_verify))
         .route("/signature/ecdsa/sign", post(ecdsa_sign))
         .route("/signature/ecdsa/verify", post(ecdsa_verify))
-    .route("/signature/elgamal/sign", post(elgamal_sign))
-    .route("/signature/elgamal/verify", post(elgamal_verify))
+        .route("/signature/elgamal/sign", post(elgamal_sign))
+        .route("/signature/elgamal/verify", post(elgamal_verify))
 }

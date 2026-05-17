@@ -134,6 +134,10 @@ mod tests {
     fn brute_force_returns_all_candidates() {
         let candidates = brute_force("KHOOR");
         assert_eq!(candidates.len(), 26);
-        assert!(candidates.iter().any(|candidate| candidate.plaintext == "HELLO"));
+        assert!(
+            candidates
+                .iter()
+                .any(|candidate| candidate.plaintext == "HELLO")
+        );
     }
 }

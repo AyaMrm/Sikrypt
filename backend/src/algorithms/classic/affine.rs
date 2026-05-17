@@ -76,7 +76,7 @@ pub fn decrypt(ciphertext: &str, a: i32, b: i32) -> Result<String, AffineError> 
 
 #[cfg(test)]
 mod tests {
-    use super::{decrypt, encrypt, AffineError};
+    use super::{AffineError, decrypt, encrypt};
 
     #[test]
     fn encrypts_and_decrypts() {

@@ -157,12 +157,7 @@ pub fn kasiski_candidates(
         }
     }
 
-    candidates.sort_by(|left, right| {
-        right
-            .1
-            .cmp(&left.1)
-            .then_with(|| left.0.cmp(&right.0))
-    });
+    candidates.sort_by(|left, right| right.1.cmp(&left.1).then_with(|| left.0.cmp(&right.0)));
 
     (Some(current_gcd), candidates)
 }

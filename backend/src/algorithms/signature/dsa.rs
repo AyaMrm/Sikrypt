@@ -112,7 +112,8 @@ pub fn sign(
     }
 
     let r = mod_pow(parameters.g, ephemeral_key, parameters.p) % parameters.q;
-    let k_inv = mod_inverse(ephemeral_key, parameters.q).ok_or(DsaError::ModularInverseDoesNotExist)?;
+    let k_inv =
+        mod_inverse(ephemeral_key, parameters.q).ok_or(DsaError::ModularInverseDoesNotExist)?;
     let z = hash_to_field(message, parameters.q);
     let s = (k_inv.saturating_mul(z + private_key.saturating_mul(r))) % parameters.q;
 
@@ -131,7 +132,11 @@ pub fn verify(
 ) -> Result<bool, DsaError> {
     validate_parameters(parameters)?;
 
-    if signature.r == 0 || signature.r >= parameters.q || signature.s == 0 || signature.s >= parameters.q {
+    if signature.r == 0
+        || signature.r >= parameters.q
+        || signature.s == 0
+        || signature.s >= parameters.q
+    {
         return Ok(false);
     }
 
@@ -139,7 +144,8 @@ pub fn verify(
     let z = hash_to_field(message, parameters.q);
     let u1 = (z * w) % parameters.q;
     let u2 = (signature.r * w) % parameters.q;
-    let v = (mod_pow(parameters.g, u1, parameters.p) * mod_pow(public_key, u2, parameters.p) % parameters.p)
+    let v = (mod_pow(parameters.g, u1, parameters.p) * mod_pow(public_key, u2, parameters.p)
+        % parameters.p)
         % parameters.q;
 
     Ok(v == signature.r)
@@ -147,7 +153,7 @@ pub fn verify(
 
 #[cfg(test)]
 mod tests {
-    use super::{generate_key_pair, sign, verify, DsaParameters};
+    use super::{DsaParameters, generate_key_pair, sign, verify};
 
     #[test]
     fn signs_and_verifies_message() {

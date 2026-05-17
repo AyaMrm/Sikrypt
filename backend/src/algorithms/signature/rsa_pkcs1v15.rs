@@ -45,7 +45,10 @@ fn hash_message_to_modulus(message: &str, modulus: u128) -> Result<u128, RsaPkcs
     Ok(reduced % modulus)
 }
 
-pub fn sign(message: &str, key_pair: &RsaKeyPair) -> Result<RsaPkcs1v15Signature, RsaPkcs1v15Error> {
+pub fn sign(
+    message: &str,
+    key_pair: &RsaKeyPair,
+) -> Result<RsaPkcs1v15Signature, RsaPkcs1v15Error> {
     let hashed = hash_message_to_modulus(message, key_pair.n)?;
     Ok(RsaPkcs1v15Signature {
         signature: mod_pow(hashed, key_pair.d, key_pair.n),

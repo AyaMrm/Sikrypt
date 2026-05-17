@@ -95,13 +95,17 @@ fn point_add(curve: &ToyCurve, p1: MaybePoint, p2: MaybePoint) -> Result<MaybePo
                 (numerator * denominator) % curve.p
             } else {
                 let numerator = mod_reduce(b.y as i128 - a.y as i128, curve.p);
-                let denominator = mod_inverse(mod_reduce(b.x as i128 - a.x as i128, curve.p), curve.p)
-                    .ok_or(EcdsaError::ModularInverseDoesNotExist)?;
+                let denominator =
+                    mod_inverse(mod_reduce(b.x as i128 - a.x as i128, curve.p), curve.p)
+                        .ok_or(EcdsaError::ModularInverseDoesNotExist)?;
                 (numerator * denominator) % curve.p
             };
 
             let x3 = mod_reduce((slope * slope) as i128 - a.x as i128 - b.x as i128, curve.p);
-            let y3 = mod_reduce(slope as i128 * (a.x as i128 - x3 as i128) - a.y as i128, curve.p);
+            let y3 = mod_reduce(
+                slope as i128 * (a.x as i128 - x3 as i128) - a.y as i128,
+                curve.p,
+            );
 
             Ok(Some(CurvePoint { x: x3, y: y3 }))
         }
@@ -143,8 +147,8 @@ pub fn generate_key_pair(curve: &ToyCurve, private_key: u128) -> Result<EcdsaKey
         return Err(EcdsaError::InvalidPrivateKey);
     }
 
-    let public_key = scalar_mul(curve, private_key, curve.generator)?
-        .ok_or(EcdsaError::PointAtInfinity)?;
+    let public_key =
+        scalar_mul(curve, private_key, curve.generator)?.ok_or(EcdsaError::PointAtInfinity)?;
 
     Ok(EcdsaKeyPair {
         private_key,
@@ -166,13 +170,15 @@ pub fn sign(
         return Err(EcdsaError::InvalidEphemeralKey);
     }
 
-    let point = scalar_mul(curve, ephemeral_key, curve.generator)?.ok_or(EcdsaError::PointAtInfinity)?;
+    let point =
+        scalar_mul(curve, ephemeral_key, curve.generator)?.ok_or(EcdsaError::PointAtInfinity)?;
     let r = point.x % curve.n;
     if r == 0 {
         return Err(EcdsaError::InvalidEphemeralKey);
     }
 
-    let k_inv = mod_inverse(ephemeral_key, curve.n).ok_or(EcdsaError::ModularInverseDoesNotExist)?;
+    let k_inv =
+        mod_inverse(ephemeral_key, curve.n).ok_or(EcdsaError::ModularInverseDoesNotExist)?;
     let z = hash_to_field(message, curve.n);
     let s = (k_inv * (z + (r * private_key) % curve.n)) % curve.n;
 

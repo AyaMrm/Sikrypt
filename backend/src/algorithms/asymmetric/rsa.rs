@@ -112,7 +112,7 @@ pub fn decrypt(ciphertext: u128, key_pair: &RsaKeyPair) -> u128 {
 
 #[cfg(test)]
 mod tests {
-    use super::{decrypt, encrypt, generate_key_pair, RsaError};
+    use super::{RsaError, decrypt, encrypt, generate_key_pair};
 
     #[test]
     fn encrypts_and_decrypts_known_example() {

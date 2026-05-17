@@ -20,7 +20,11 @@ pub fn hmac_sha256(key: &[u8], message: &str) -> Result<String, HmacError> {
     Ok(to_hex(&tag))
 }
 
-pub fn verify_hmac_sha256(key: &[u8], message: &str, expected_hex: &str) -> Result<bool, HmacError> {
+pub fn verify_hmac_sha256(
+    key: &[u8],
+    message: &str,
+    expected_hex: &str,
+) -> Result<bool, HmacError> {
     Ok(hmac_sha256(key, message)? == expected_hex.to_ascii_lowercase())
 }
 

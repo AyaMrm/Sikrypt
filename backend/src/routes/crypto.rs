@@ -1,19 +1,19 @@
-use aes_gcm::{aead::Aead, aead::Payload, Aes256Gcm, KeyInit};
+use aes_gcm::{Aes256Gcm, KeyInit, aead::Aead, aead::Payload};
+use axum::middleware::Next;
 use axum::{
+    Router,
     extract::{ConnectInfo, Json},
     http::{Request, StatusCode},
     middleware,
     response::{IntoResponse, Response},
     routing::post,
-    Router,
 };
-use axum::middleware::Next;
-use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
+use base64::engine::general_purpose::STANDARD;
 use hkdf::Hkdf;
-use rsa::rand_core::{OsRng, RngCore};
 use rsa::pkcs8::{DecodePrivateKey, DecodePublicKey, EncodePrivateKey, EncodePublicKey};
 use rsa::pss::{Signature as RsaPssSignature, SigningKey, VerifyingKey};
+use rsa::rand_core::{OsRng, RngCore};
 use rsa::{Oaep, RsaPrivateKey, RsaPublicKey};
 use sha2::Sha256;
 use signature::{RandomizedSigner, SignatureEncoding, Signer, Verifier};
@@ -23,7 +23,10 @@ use std::sync::Mutex;
 use std::time::{Duration, Instant};
 use x25519_dalek::{PublicKey as X25519PublicKey, StaticSecret as X25519Secret};
 
-use ed25519_dalek::{Signature as Ed25519Signature, SigningKey as Ed25519SigningKey, VerifyingKey as Ed25519VerifyingKey};
+use ed25519_dalek::{
+    Signature as Ed25519Signature, SigningKey as Ed25519SigningKey,
+    VerifyingKey as Ed25519VerifyingKey,
+};
 
 use crate::errors::ApiError;
 use crate::models::crypto::{
@@ -31,7 +34,8 @@ use crate::models::crypto::{
     RsaKeyGenRequest, RsaKeyPairResponse, RsaOaepDecryptRequest, RsaOaepDecryptResponse,
     RsaOaepEncryptRequest, RsaOaepEncryptResponse, RsaPssSignRequest, RsaPssSignResponse,
     RsaPssVerifyRequest, SecureChannelDecryptRequest, SecureChannelDecryptResponse,
-    SecureChannelEncryptRequest, SecureChannelEncryptResponse, VerifyResponse, X25519KeyPairResponse,
+    SecureChannelEncryptRequest, SecureChannelEncryptResponse, VerifyResponse,
+    X25519KeyPairResponse,
 };
 
 const X25519_KEY_LEN: usize = 32;
@@ -291,9 +295,19 @@ async fn rsa_keygen(
 async fn secure_channel_encrypt(
     Json(payload): Json<SecureChannelEncryptRequest>,
 ) -> Result<Json<SecureChannelEncryptResponse>, ApiError> {
-    let sender_secret = parse_x25519_private_key(&payload.sender_private_key_base64, "sender_private_key_base64")?;
-    let receiver_public = parse_x25519_public_key(&payload.receiver_public_key_base64, "receiver_public_key_base64")?;
-    let plaintext = decode_base64_limited(&payload.plaintext_base64, "plaintext_base64", MAX_MESSAGE_BYTES)?;
+    let sender_secret = parse_x25519_private_key(
+        &payload.sender_private_key_base64,
+        "sender_private_key_base64",
+    )?;
+    let receiver_public = parse_x25519_public_key(
+        &payload.receiver_public_key_base64,
+        "receiver_public_key_base64",
+    )?;
+    let plaintext = decode_base64_limited(
+        &payload.plaintext_base64,
+        "plaintext_base64",
+        MAX_MESSAGE_BYTES,
+    )?;
     let aad = match &payload.aad_base64 {
         Some(value) => decode_base64_limited(value, "aad_base64", MAX_AAD_BYTES)?,
         None => Vec::new(),
@@ -345,8 +359,14 @@ async fn secure_channel_encrypt(
 async fn secure_channel_decrypt(
     Json(payload): Json<SecureChannelDecryptRequest>,
 ) -> Result<Json<SecureChannelDecryptResponse>, ApiError> {
-    let receiver_secret = parse_x25519_private_key(&payload.receiver_private_key_base64, "receiver_private_key_base64")?;
-    let sender_public = parse_x25519_public_key(&payload.sender_public_key_base64, "sender_public_key_base64")?;
+    let receiver_secret = parse_x25519_private_key(
+        &payload.receiver_private_key_base64,
+        "receiver_private_key_base64",
+    )?;
+    let sender_public = parse_x25519_public_key(
+        &payload.sender_public_key_base64,
+        "sender_public_key_base64",
+    )?;
     let salt = decode_base64(&payload.salt_base64, "salt_base64")?;
     let nonce = decode_base64(&payload.nonce_base64, "nonce_base64")?;
     let ciphertext = decode_base64_limited(
@@ -409,11 +429,17 @@ async fn rsa_oaep_encrypt(
             "Failed to parse RSA public key PEM",
         )
     })?;
-    let plaintext = decode_base64_limited(&payload.plaintext_base64, "plaintext_base64", MAX_MESSAGE_BYTES)?;
+    let plaintext = decode_base64_limited(
+        &payload.plaintext_base64,
+        "plaintext_base64",
+        MAX_MESSAGE_BYTES,
+    )?;
     let oaep = match &payload.label_base64 {
-        Some(label) => Oaep::new_with_label::<Sha256, _>(
-            decode_label_string(label, "label_base64", MAX_RSA_LABEL_BYTES)?,
-        ),
+        Some(label) => Oaep::new_with_label::<Sha256, _>(decode_label_string(
+            label,
+            "label_base64",
+            MAX_RSA_LABEL_BYTES,
+        )?),
         None => Oaep::new::<Sha256>(),
     };
 
@@ -449,9 +475,11 @@ async fn rsa_oaep_decrypt(
         MAX_MESSAGE_BYTES + 512,
     )?;
     let oaep = match &payload.label_base64 {
-        Some(label) => Oaep::new_with_label::<Sha256, _>(
-            decode_label_string(label, "label_base64", MAX_RSA_LABEL_BYTES)?,
-        ),
+        Some(label) => Oaep::new_with_label::<Sha256, _>(decode_label_string(
+            label,
+            "label_base64",
+            MAX_RSA_LABEL_BYTES,
+        )?),
         None => Oaep::new::<Sha256>(),
     };
 
@@ -479,7 +507,8 @@ async fn ed25519_sign(
             "Ed25519 private key must be 32 bytes",
         ));
     }
-    let message = decode_base64_limited(&payload.message_base64, "message_base64", MAX_MESSAGE_BYTES)?;
+    let message =
+        decode_base64_limited(&payload.message_base64, "message_base64", MAX_MESSAGE_BYTES)?;
 
     let mut key = [0u8; ED25519_KEY_LEN];
     key.copy_from_slice(&key_bytes);
@@ -514,7 +543,8 @@ async fn ed25519_verify(
             "Ed25519 signature must be 64 bytes",
         ));
     }
-    let message = decode_base64_limited(&payload.message_base64, "message_base64", MAX_MESSAGE_BYTES)?;
+    let message =
+        decode_base64_limited(&payload.message_base64, "message_base64", MAX_MESSAGE_BYTES)?;
 
     let mut key = [0u8; ED25519_KEY_LEN];
     key.copy_from_slice(&key_bytes);
@@ -545,7 +575,8 @@ async fn rsa_pss_sign(
             "Failed to parse RSA private key PEM",
         )
     })?;
-    let message = decode_base64_limited(&payload.message_base64, "message_base64", MAX_MESSAGE_BYTES)?;
+    let message =
+        decode_base64_limited(&payload.message_base64, "message_base64", MAX_MESSAGE_BYTES)?;
 
     let signing_key = SigningKey::<Sha256>::new(private_key);
     let mut rng = OsRng;
@@ -566,7 +597,8 @@ async fn rsa_pss_verify(
             "Failed to parse RSA public key PEM",
         )
     })?;
-    let message = decode_base64_limited(&payload.message_base64, "message_base64", MAX_MESSAGE_BYTES)?;
+    let message =
+        decode_base64_limited(&payload.message_base64, "message_base64", MAX_MESSAGE_BYTES)?;
     let signature_bytes = decode_base64_limited(
         &payload.signature_base64,
         "signature_base64",
@@ -592,8 +624,14 @@ pub fn router() -> Router {
         .route("/crypto/keys/x25519", post(x25519_keygen))
         .route("/crypto/keys/ed25519", post(ed25519_keygen))
         .route("/crypto/keys/rsa", post(rsa_keygen))
-        .route("/crypto/secure-channel/encrypt", post(secure_channel_encrypt))
-        .route("/crypto/secure-channel/decrypt", post(secure_channel_decrypt))
+        .route(
+            "/crypto/secure-channel/encrypt",
+            post(secure_channel_encrypt),
+        )
+        .route(
+            "/crypto/secure-channel/decrypt",
+            post(secure_channel_decrypt),
+        )
         .route("/crypto/rsa/oaep/encrypt", post(rsa_oaep_encrypt))
         .route("/crypto/rsa/oaep/decrypt", post(rsa_oaep_decrypt))
         .route("/crypto/ed25519/sign", post(ed25519_sign))

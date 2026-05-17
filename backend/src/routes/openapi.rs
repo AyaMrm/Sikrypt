@@ -1,6 +1,6 @@
-use axum::{response::IntoResponse, routing::get, Router};
 use axum::http::HeaderValue;
 use axum::response::Response;
+use axum::{Router, response::IntoResponse, routing::get};
 
 const OPENAPI_JSON: &str = include_str!("../../openapi.json");
 const SWAGGER_HTML: &str = r##"<!doctype html>

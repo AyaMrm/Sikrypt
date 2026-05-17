@@ -1,4 +1,4 @@
-use axum::{routing::get, Json, Router};
+use axum::{Json, Router, routing::get};
 
 use crate::{errors::ApiError, models::common::HealthResponse};
 

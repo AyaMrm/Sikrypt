@@ -1,4 +1,4 @@
-use axum::{extract::Json, http::StatusCode, routing::post, Router};
+use axum::{Router, extract::Json, http::StatusCode, routing::post};
 
 use crate::{
     algorithms::symmetric::{
@@ -9,9 +9,9 @@ use crate::{
     },
     errors::ApiError,
     models::symmetric::{
-        AesEncryptResponse, BlockCipherDecryptRequest, BlockCipherEncryptRequest, DesEncryptResponse,
-        FinalistEncryptResponse, PlaintextResponse, Rc4DecryptRequest, Rc4EncryptRequest,
-        Rc4EncryptResponse,
+        AesEncryptResponse, BlockCipherDecryptRequest, BlockCipherEncryptRequest,
+        DesEncryptResponse, FinalistEncryptResponse, PlaintextResponse, Rc4DecryptRequest,
+        Rc4EncryptRequest, Rc4EncryptResponse,
     },
 };
 
@@ -141,8 +141,8 @@ fn finalist_key_size_label(key_size: FinalistKeySize) -> String {
 async fn rc4_encrypt(
     Json(payload): Json<Rc4EncryptRequest>,
 ) -> Result<Json<Rc4EncryptResponse>, ApiError> {
-    let output =
-        rc4::encrypt(payload.key.as_bytes(), payload.plaintext.as_bytes()).map_err(map_rc4_error)?;
+    let output = rc4::encrypt(payload.key.as_bytes(), payload.plaintext.as_bytes())
+        .map_err(map_rc4_error)?;
 
     Ok(Json(Rc4EncryptResponse {
         ciphertext_hex: to_hex(&output.ciphertext),
@@ -186,12 +186,8 @@ async fn des_decrypt(
     Json(payload): Json<BlockCipherDecryptRequest>,
 ) -> Result<Json<PlaintextResponse>, ApiError> {
     let ciphertext = from_hex(&payload.ciphertext_hex)?;
-    let plaintext = des::decrypt_cbc(
-        payload.key.as_bytes(),
-        payload.iv.as_bytes(),
-        &ciphertext,
-    )
-    .map_err(map_des_error)?;
+    let plaintext = des::decrypt_cbc(payload.key.as_bytes(), payload.iv.as_bytes(), &ciphertext)
+        .map_err(map_des_error)?;
     let result = String::from_utf8(plaintext).map_err(|_| {
         ApiError::new(
             StatusCode::BAD_REQUEST,
@@ -224,12 +220,8 @@ async fn aes_decrypt(
     Json(payload): Json<BlockCipherDecryptRequest>,
 ) -> Result<Json<PlaintextResponse>, ApiError> {
     let ciphertext = from_hex(&payload.ciphertext_hex)?;
-    let plaintext = aes::decrypt_cbc(
-        payload.key.as_bytes(),
-        payload.iv.as_bytes(),
-        &ciphertext,
-    )
-    .map_err(map_aes_error)?;
+    let plaintext = aes::decrypt_cbc(payload.key.as_bytes(), payload.iv.as_bytes(), &ciphertext)
+        .map_err(map_aes_error)?;
     let result = String::from_utf8(plaintext).map_err(|_| {
         ApiError::new(
             StatusCode::BAD_REQUEST,
@@ -262,12 +254,9 @@ async fn twofish_decrypt(
     Json(payload): Json<BlockCipherDecryptRequest>,
 ) -> Result<Json<PlaintextResponse>, ApiError> {
     let ciphertext = from_hex(&payload.ciphertext_hex)?;
-    let plaintext = finalists::twofish_decrypt_cbc(
-        payload.key.as_bytes(),
-        payload.iv.as_bytes(),
-        &ciphertext,
-    )
-    .map_err(map_finalist_error)?;
+    let plaintext =
+        finalists::twofish_decrypt_cbc(payload.key.as_bytes(), payload.iv.as_bytes(), &ciphertext)
+            .map_err(map_finalist_error)?;
     let result = String::from_utf8(plaintext).map_err(|_| {
         ApiError::new(
             StatusCode::BAD_REQUEST,
@@ -300,12 +289,9 @@ async fn serpent_decrypt(
     Json(payload): Json<BlockCipherDecryptRequest>,
 ) -> Result<Json<PlaintextResponse>, ApiError> {
     let ciphertext = from_hex(&payload.ciphertext_hex)?;
-    let plaintext = finalists::serpent_decrypt_cbc(
-        payload.key.as_bytes(),
-        payload.iv.as_bytes(),
-        &ciphertext,
-    )
-    .map_err(map_finalist_error)?;
+    let plaintext =
+        finalists::serpent_decrypt_cbc(payload.key.as_bytes(), payload.iv.as_bytes(), &ciphertext)
+            .map_err(map_finalist_error)?;
     let result = String::from_utf8(plaintext).map_err(|_| {
         ApiError::new(
             StatusCode::BAD_REQUEST,
@@ -338,12 +324,9 @@ async fn rc6_decrypt(
     Json(payload): Json<BlockCipherDecryptRequest>,
 ) -> Result<Json<PlaintextResponse>, ApiError> {
     let ciphertext = from_hex(&payload.ciphertext_hex)?;
-    let plaintext = finalists::rc6_decrypt_cbc(
-        payload.key.as_bytes(),
-        payload.iv.as_bytes(),
-        &ciphertext,
-    )
-    .map_err(map_finalist_error)?;
+    let plaintext =
+        finalists::rc6_decrypt_cbc(payload.key.as_bytes(), payload.iv.as_bytes(), &ciphertext)
+            .map_err(map_finalist_error)?;
     let result = String::from_utf8(plaintext).map_err(|_| {
         ApiError::new(
             StatusCode::BAD_REQUEST,
@@ -376,12 +359,9 @@ async fn rijndael_decrypt(
     Json(payload): Json<BlockCipherDecryptRequest>,
 ) -> Result<Json<PlaintextResponse>, ApiError> {
     let ciphertext = from_hex(&payload.ciphertext_hex)?;
-    let plaintext = finalists::rijndael_decrypt_cbc(
-        payload.key.as_bytes(),
-        payload.iv.as_bytes(),
-        &ciphertext,
-    )
-    .map_err(map_finalist_error)?;
+    let plaintext =
+        finalists::rijndael_decrypt_cbc(payload.key.as_bytes(), payload.iv.as_bytes(), &ciphertext)
+            .map_err(map_finalist_error)?;
     let result = String::from_utf8(plaintext).map_err(|_| {
         ApiError::new(
             StatusCode::BAD_REQUEST,
@@ -400,13 +380,13 @@ pub fn router() -> Router {
         .route("/symmetric/des/encrypt", post(des_encrypt))
         .route("/symmetric/des/decrypt", post(des_decrypt))
         .route("/symmetric/aes/encrypt", post(aes_encrypt))
-    .route("/symmetric/aes/decrypt", post(aes_decrypt))
-    .route("/symmetric/twofish/encrypt", post(twofish_encrypt))
-    .route("/symmetric/twofish/decrypt", post(twofish_decrypt))
-    .route("/symmetric/serpent/encrypt", post(serpent_encrypt))
-    .route("/symmetric/serpent/decrypt", post(serpent_decrypt))
-    .route("/symmetric/rc6/encrypt", post(rc6_encrypt))
-    .route("/symmetric/rc6/decrypt", post(rc6_decrypt))
-    .route("/symmetric/rijndael/encrypt", post(rijndael_encrypt))
-    .route("/symmetric/rijndael/decrypt", post(rijndael_decrypt))
+        .route("/symmetric/aes/decrypt", post(aes_decrypt))
+        .route("/symmetric/twofish/encrypt", post(twofish_encrypt))
+        .route("/symmetric/twofish/decrypt", post(twofish_decrypt))
+        .route("/symmetric/serpent/encrypt", post(serpent_encrypt))
+        .route("/symmetric/serpent/decrypt", post(serpent_decrypt))
+        .route("/symmetric/rc6/encrypt", post(rc6_encrypt))
+        .route("/symmetric/rc6/decrypt", post(rc6_decrypt))
+        .route("/symmetric/rijndael/encrypt", post(rijndael_encrypt))
+        .route("/symmetric/rijndael/decrypt", post(rijndael_decrypt))
 }

@@ -56,7 +56,7 @@ pub fn decrypt(ciphertext: &str, key: &str) -> Result<String, VigenereError> {
 
 #[cfg(test)]
 mod tests {
-    use super::{decrypt, encrypt, VigenereError};
+    use super::{VigenereError, decrypt, encrypt};
 
     #[test]
     fn encrypts_and_decrypts_known_example() {

@@ -1,5 +1,5 @@
 use cbc::{Decryptor, Encryptor};
-use cipher::{block_padding::Pkcs7, BlockDecryptMut, BlockEncryptMut, KeyIvInit};
+use cipher::{BlockDecryptMut, BlockEncryptMut, KeyIvInit, block_padding::Pkcs7};
 use des::Des;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -57,7 +57,7 @@ pub fn decrypt_cbc(key: &[u8], iv: &[u8], ciphertext: &[u8]) -> Result<Vec<u8>, 
 
 #[cfg(test)]
 mod tests {
-    use super::{decrypt_cbc, encrypt_cbc, DesError};
+    use super::{DesError, decrypt_cbc, encrypt_cbc};
 
     #[test]
     fn encrypts_and_decrypts_des_cbc() {

@@ -85,7 +85,11 @@ fn digraphs_for_encrypt(text: &str) -> Vec<(char, char)> {
     let mut index = 0;
     while index < chars.len() {
         let first = chars[index];
-        let second = if index + 1 < chars.len() { chars[index + 1] } else { 'X' };
+        let second = if index + 1 < chars.len() {
+            chars[index + 1]
+        } else {
+            'X'
+        };
 
         if first == second {
             pairs.push((first, 'X'));
@@ -119,7 +123,10 @@ fn digraphs_for_decrypt(text: &str) -> Vec<(char, char)> {
 }
 
 fn position_of(positions: &HashMap<char, Position>, ch: char) -> Position {
-    positions.get(&ch).copied().unwrap_or(Position { row: 0, col: 0 })
+    positions
+        .get(&ch)
+        .copied()
+        .unwrap_or(Position { row: 0, col: 0 })
 }
 
 fn char_at(square: &[char; 25], row: usize, col: usize) -> char {
@@ -140,14 +147,20 @@ fn transform_pair(
         let shift = if decrypt { 4 } else { 1 };
         let col_a = (pos_a.col + shift) % 5;
         let col_b = (pos_b.col + shift) % 5;
-        return (char_at(square, pos_a.row, col_a), char_at(square, pos_b.row, col_b));
+        return (
+            char_at(square, pos_a.row, col_a),
+            char_at(square, pos_b.row, col_b),
+        );
     }
 
     if pos_a.col == pos_b.col {
         let shift = if decrypt { 4 } else { 1 };
         let row_a = (pos_a.row + shift) % 5;
         let row_b = (pos_b.row + shift) % 5;
-        return (char_at(square, row_a, pos_a.col), char_at(square, row_b, pos_b.col));
+        return (
+            char_at(square, row_a, pos_a.col),
+            char_at(square, row_b, pos_b.col),
+        );
     }
 
     (

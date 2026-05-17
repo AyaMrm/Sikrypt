@@ -70,7 +70,7 @@ pub fn decrypt(key: &[u8], ciphertext: &[u8]) -> Result<Rc4Output, Rc4Error> {
 
 #[cfg(test)]
 mod tests {
-    use super::{decrypt, encrypt, Rc4Error};
+    use super::{Rc4Error, decrypt, encrypt};
 
     #[test]
     fn encrypts_and_decrypts_roundtrip() {

@@ -1,6 +1,6 @@
 use aes::{Aes128, Aes192, Aes256};
 use cbc::{Decryptor, Encryptor};
-use cipher::{block_padding::Pkcs7, BlockDecryptMut, BlockEncryptMut, KeyIvInit};
+use cipher::{BlockDecryptMut, BlockEncryptMut, KeyIvInit, block_padding::Pkcs7};
 use cipher05::{Block, BlockCipherDecrypt, BlockCipherEncrypt, KeyInit};
 use rc6::RC6_32_20_16;
 use serpent::Serpent;
@@ -148,8 +148,7 @@ pub fn rc6_encrypt_cbc(
     }
     validate_iv_16(iv)?;
 
-    let cipher = RC6_32_20_16::new_from_slice(key)
-        .map_err(|_| FinalistError::InvalidKeyLength)?;
+    let cipher = RC6_32_20_16::new_from_slice(key).map_err(|_| FinalistError::InvalidKeyLength)?;
 
     let padded = pkcs7_pad_block16(plaintext);
     let mut prev = [0u8; 16];
@@ -178,11 +177,7 @@ pub fn rc6_encrypt_cbc(
     })
 }
 
-pub fn rc6_decrypt_cbc(
-    key: &[u8],
-    iv: &[u8],
-    ciphertext: &[u8],
-) -> Result<Vec<u8>, FinalistError> {
+pub fn rc6_decrypt_cbc(key: &[u8], iv: &[u8], ciphertext: &[u8]) -> Result<Vec<u8>, FinalistError> {
     if key.len() != 16 {
         return Err(FinalistError::InvalidKeyLength);
     }
@@ -192,8 +187,7 @@ pub fn rc6_decrypt_cbc(
         return Err(FinalistError::DecryptionFailed);
     }
 
-    let cipher = RC6_32_20_16::new_from_slice(key)
-        .map_err(|_| FinalistError::InvalidKeyLength)?;
+    let cipher = RC6_32_20_16::new_from_slice(key).map_err(|_| FinalistError::InvalidKeyLength)?;
 
     let mut prev = [0u8; 16];
     prev.copy_from_slice(iv);

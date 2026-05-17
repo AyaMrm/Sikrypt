@@ -1,6 +1,6 @@
 use aes::{Aes128, Aes192, Aes256};
 use cbc::{Decryptor, Encryptor};
-use cipher::{block_padding::Pkcs7, BlockDecryptMut, BlockEncryptMut, KeyIvInit};
+use cipher::{BlockDecryptMut, BlockEncryptMut, KeyIvInit, block_padding::Pkcs7};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AesError {
@@ -45,21 +45,15 @@ pub fn encrypt_cbc(key: &[u8], iv: &[u8], plaintext: &[u8]) -> Result<AesCbcOutp
     validate_iv(iv)?;
 
     let ciphertext = match key_size {
-        AesKeySize::Bits128 => {
-            Encryptor::<Aes128>::new_from_slices(key, iv)
-                .map_err(|_| AesError::InvalidIvLength)?
-                .encrypt_padded_vec_mut::<Pkcs7>(plaintext)
-        }
-        AesKeySize::Bits192 => {
-            Encryptor::<Aes192>::new_from_slices(key, iv)
-                .map_err(|_| AesError::InvalidIvLength)?
-                .encrypt_padded_vec_mut::<Pkcs7>(plaintext)
-        }
-        AesKeySize::Bits256 => {
-            Encryptor::<Aes256>::new_from_slices(key, iv)
-                .map_err(|_| AesError::InvalidIvLength)?
-                .encrypt_padded_vec_mut::<Pkcs7>(plaintext)
-        }
+        AesKeySize::Bits128 => Encryptor::<Aes128>::new_from_slices(key, iv)
+            .map_err(|_| AesError::InvalidIvLength)?
+            .encrypt_padded_vec_mut::<Pkcs7>(plaintext),
+        AesKeySize::Bits192 => Encryptor::<Aes192>::new_from_slices(key, iv)
+            .map_err(|_| AesError::InvalidIvLength)?
+            .encrypt_padded_vec_mut::<Pkcs7>(plaintext),
+        AesKeySize::Bits256 => Encryptor::<Aes256>::new_from_slices(key, iv)
+            .map_err(|_| AesError::InvalidIvLength)?
+            .encrypt_padded_vec_mut::<Pkcs7>(plaintext),
     };
 
     Ok(AesCbcOutput {
@@ -91,7 +85,7 @@ pub fn decrypt_cbc(key: &[u8], iv: &[u8], ciphertext: &[u8]) -> Result<Vec<u8>, 
 
 #[cfg(test)]
 mod tests {
-    use super::{decrypt_cbc, encrypt_cbc, AesError, AesKeySize};
+    use super::{AesError, AesKeySize, decrypt_cbc, encrypt_cbc};
 
     #[test]
     fn encrypts_and_decrypts_aes_128_cbc() {

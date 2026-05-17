@@ -118,7 +118,7 @@ pub fn decrypt(ciphertext: &str, key: Matrix2x2) -> Result<String, HillError> {
 
 #[cfg(test)]
 mod tests {
-    use super::{decrypt, encrypt, HillError, Matrix2x2};
+    use super::{HillError, Matrix2x2, decrypt, encrypt};
 
     #[test]
     fn encrypts_known_example() {
