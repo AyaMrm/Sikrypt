@@ -79,7 +79,7 @@ fn sanitize_text(text: &str) -> Vec<char> {
 }
 
 fn digraphs_for_encrypt(text: &str) -> Vec<(char, char)> {
-    let mut chars = sanitize_text(text);
+    let chars = sanitize_text(text);
     let mut pairs = Vec::new();
 
     let mut index = 0;
@@ -191,7 +191,7 @@ mod tests {
     #[test]
     fn encrypts_and_decrypts() {
         let encrypted = encrypt("HIDE THE GOLD", "PLAYFAIR EXAMPLE").unwrap();
-        assert_eq!(encrypted, "BMODZBXDNABEKUDMUIXMMOUVIF");
+        assert_eq!(encrypted, "BMODZBXDNAGE");
         let decrypted = decrypt(&encrypted, "PLAYFAIR EXAMPLE").unwrap();
         assert!(decrypted.starts_with("HIDETHEGOLD"));
     }
