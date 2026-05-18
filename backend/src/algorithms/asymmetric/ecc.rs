@@ -1,4 +1,4 @@
-use p256::elliptic_curve::sec1::{FromEncodedPoint, ToEncodedPoint};
+use p256::elliptic_curve::sec1::ToEncodedPoint;
 use p256::{EncodedPoint, PublicKey, SecretKey, ecdh::diffie_hellman};
 use rand_core::OsRng;
 

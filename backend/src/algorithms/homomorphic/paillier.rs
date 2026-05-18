@@ -67,7 +67,7 @@ fn random_prime(bits: usize) -> BigUint {
 }
 
 pub fn keygen(bits: usize) -> Result<PaillierKeyPair, PaillierError> {
-    if bits < 2048 || bits > 4096 || bits % 256 != 0 {
+    if !(2048..=4096).contains(&bits) || !bits.is_multiple_of(256) {
         return Err(PaillierError::InvalidKeySize);
     }
 

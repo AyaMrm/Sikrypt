@@ -108,7 +108,7 @@ pub fn combine(shares: &[ShamirShare], threshold: u8) -> Result<Vec<u8>, ShamirE
     let subset = &shares[..threshold as usize];
     let mut secret = vec![0u8; share_len];
 
-    for byte_index in 0..share_len {
+    for (byte_index, secret_byte) in secret.iter_mut().enumerate().take(share_len) {
         let mut value = 0u8;
 
         for (i, share_i) in subset.iter().enumerate() {
@@ -132,7 +132,7 @@ pub fn combine(shares: &[ShamirShare], threshold: u8) -> Result<Vec<u8>, ShamirE
             value = gf256_add(value, gf256_mul(yi, lagrange));
         }
 
-        secret[byte_index] = value;
+        *secret_byte = value;
     }
 
     Ok(secret)

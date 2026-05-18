@@ -67,12 +67,12 @@ async fn secure_ws_handler(
     ws: WebSocketUpgrade,
 ) -> impl IntoResponse {
     let expected = std::env::var("SIKRYPT_WS_API_KEY").ok();
-    if let Some(expected_key) = expected {
-        if !expected_key.trim().is_empty() {
-            let provided = params.api_key.as_deref();
-            if provided != Some(expected_key.as_str()) {
-                return (axum::http::StatusCode::UNAUTHORIZED, "invalid_api_key").into_response();
-            }
+    if let Some(expected_key) = expected
+        && !expected_key.trim().is_empty()
+    {
+        let provided = params.api_key.as_deref();
+        if provided != Some(expected_key.as_str()) {
+            return (axum::http::StatusCode::UNAUTHORIZED, "invalid_api_key").into_response();
         }
     }
 

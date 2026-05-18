@@ -100,10 +100,10 @@ fn digraphs_for_encrypt(text: &str) -> Vec<(char, char)> {
         }
     }
 
-    if let Some(last) = pairs.last_mut() {
-        if last.1 == 0 as char {
-            last.1 = 'X';
-        }
+    if let Some(last) = pairs.last_mut()
+        && last.1 == 0 as char
+    {
+        last.1 = 'X';
     }
 
     pairs

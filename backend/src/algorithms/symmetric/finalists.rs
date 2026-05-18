@@ -119,7 +119,7 @@ fn pkcs7_pad_block16(data: &[u8]) -> Vec<u8> {
 }
 
 fn pkcs7_unpad_block16(data: &[u8]) -> Result<Vec<u8>, FinalistError> {
-    if data.is_empty() || data.len() % 16 != 0 {
+    if data.is_empty() || !data.len().is_multiple_of(16) {
         return Err(FinalistError::DecryptionFailed);
     }
 
@@ -177,13 +177,17 @@ pub fn rc6_encrypt_cbc(
     })
 }
 
-pub fn rc6_decrypt_cbc(key: &[u8], iv: &[u8], ciphertext: &[u8]) -> Result<Vec<u8>, FinalistError> {
+pub fn rc6_decrypt_cbc(
+    key: &[u8],
+    iv: &[u8],
+    ciphertext: &[u8],
+) -> Result<Vec<u8>, FinalistError> {
     if key.len() != 16 {
         return Err(FinalistError::InvalidKeyLength);
     }
     validate_iv_16(iv)?;
 
-    if ciphertext.is_empty() || ciphertext.len() % 16 != 0 {
+    if ciphertext.is_empty() || !ciphertext.len().is_multiple_of(16) {
         return Err(FinalistError::DecryptionFailed);
     }
 
@@ -198,7 +202,7 @@ pub fn rc6_decrypt_cbc(key: &[u8], iv: &[u8], ciphertext: &[u8]) -> Result<Vec<u
         let mut block = Block::<RC6_32_20_16>::default();
         block.copy_from_slice(chunk);
 
-        let current_ct = block.clone();
+        let current_ct = block;
         cipher.decrypt_block(&mut block);
 
         for i in 0..16 {

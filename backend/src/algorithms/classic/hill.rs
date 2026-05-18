@@ -84,7 +84,7 @@ pub fn encrypt(plaintext: &str, key: Matrix2x2) -> Result<String, HillError> {
         return Ok(String::new());
     }
 
-    if values.len() % 2 != 0 {
+    if !values.len().is_multiple_of(2) {
         values.push(23);
     }
 
@@ -102,7 +102,7 @@ pub fn decrypt(ciphertext: &str, key: Matrix2x2) -> Result<String, HillError> {
     let inverse = key.inverse_mod_26()?;
     let values = text_to_numbers(ciphertext);
 
-    if values.len() % 2 != 0 {
+    if !values.len().is_multiple_of(2) {
         return Err(HillError::InvalidMatrix);
     }
 

@@ -123,15 +123,15 @@ async fn rate_limit(req: Request<axum::body::Body>, next: Next) -> Response {
         .into_response();
     }
 
-    if let Some(ip_bucket) = rate_limit_ip(&req) {
-        if !check_rate_limit(&ip_bucket, RATE_LIMIT_PER_IP) {
-            return ApiError::new(
-                StatusCode::TOO_MANY_REQUESTS,
-                "rate_limited",
-                "Too many requests for this IP",
-            )
-            .into_response();
-        }
+    if let Some(ip_bucket) = rate_limit_ip(&req)
+        && !check_rate_limit(&ip_bucket, RATE_LIMIT_PER_IP)
+    {
+        return ApiError::new(
+            StatusCode::TOO_MANY_REQUESTS,
+            "rate_limited",
+            "Too many requests for this IP",
+        )
+        .into_response();
     }
 
     next.run(req).await
