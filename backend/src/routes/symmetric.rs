@@ -52,6 +52,28 @@ fn from_hex(value: &str) -> Result<Vec<u8>, ApiError> {
     Ok(bytes)
 }
 
+fn is_hex(value: &str) -> bool {
+    !value.is_empty() && value.chars().all(|ch| ch.is_ascii_hexdigit())
+}
+
+fn parse_des_bytes(value: &str, kind: &str) -> Result<Vec<u8>, ApiError> {
+    if value.len() == 16 && is_hex(value) {
+        return from_hex(value);
+    }
+
+    if value.as_bytes().len() == 8 {
+        return Ok(value.as_bytes().to_vec());
+    }
+
+    let (code, message) = if kind == "key" {
+        ("invalid_key_length", "DES requires an 8-byte key")
+    } else {
+        ("invalid_iv_length", "DES-CBC requires an 8-byte IV")
+    };
+
+    Err(ApiError::new(StatusCode::BAD_REQUEST, code, message))
+}
+
 fn map_rc4_error(error: Rc4Error) -> ApiError {
     match error {
         Rc4Error::EmptyKey => ApiError::new(
@@ -169,12 +191,10 @@ async fn rc4_decrypt(
 async fn des_encrypt(
     Json(payload): Json<BlockCipherEncryptRequest>,
 ) -> Result<Json<DesEncryptResponse>, ApiError> {
-    let output = des::encrypt_cbc(
-        payload.key.as_bytes(),
-        payload.iv.as_bytes(),
-        payload.plaintext.as_bytes(),
-    )
-    .map_err(map_des_error)?;
+    let key = parse_des_bytes(&payload.key, "key")?;
+    let iv = parse_des_bytes(&payload.iv, "iv")?;
+    let output = des::encrypt_cbc(&key, &iv, payload.plaintext.as_bytes())
+        .map_err(map_des_error)?;
 
     Ok(Json(DesEncryptResponse {
         ciphertext_hex: to_hex(&output.ciphertext),
@@ -186,8 +206,9 @@ async fn des_decrypt(
     Json(payload): Json<BlockCipherDecryptRequest>,
 ) -> Result<Json<PlaintextResponse>, ApiError> {
     let ciphertext = from_hex(&payload.ciphertext_hex)?;
-    let plaintext = des::decrypt_cbc(payload.key.as_bytes(), payload.iv.as_bytes(), &ciphertext)
-        .map_err(map_des_error)?;
+    let key = parse_des_bytes(&payload.key, "key")?;
+    let iv = parse_des_bytes(&payload.iv, "iv")?;
+    let plaintext = des::decrypt_cbc(&key, &iv, &ciphertext).map_err(map_des_error)?;
     let result = String::from_utf8(plaintext).map_err(|_| {
         ApiError::new(
             StatusCode::BAD_REQUEST,
