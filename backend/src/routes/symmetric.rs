@@ -61,7 +61,7 @@ fn parse_des_bytes(value: &str, kind: &str) -> Result<Vec<u8>, ApiError> {
         return from_hex(value);
     }
 
-    if value.as_bytes().len() == 8 {
+    if value.len() == 8 {
         return Ok(value.as_bytes().to_vec());
     }
 
@@ -193,8 +193,8 @@ async fn des_encrypt(
 ) -> Result<Json<DesEncryptResponse>, ApiError> {
     let key = parse_des_bytes(&payload.key, "key")?;
     let iv = parse_des_bytes(&payload.iv, "iv")?;
-    let output = des::encrypt_cbc(&key, &iv, payload.plaintext.as_bytes())
-        .map_err(map_des_error)?;
+    let output =
+        des::encrypt_cbc(&key, &iv, payload.plaintext.as_bytes()).map_err(map_des_error)?;
 
     Ok(Json(DesEncryptResponse {
         ciphertext_hex: to_hex(&output.ciphertext),

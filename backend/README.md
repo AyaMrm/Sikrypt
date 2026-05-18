@@ -24,6 +24,21 @@ Le front (dans `../front`) est volontairement minimal et sert de demo.
 - Moderne: `/crypto/*`
 - Educatif: `/asymmetric/*`, `/classic/*`, `/hash/*`, `/signature/*`, `/symmetric/*`, `/comms/*`
 
+## Demo de communication (WebSocket + comms)
+
+Le backend propose une demo de communication securisee:
+
+- WebSocket: `/ws/secure`
+- Endpoints REST: `/comms/*` (canal securise, vote demo)
+
+Flux simplifie du chat securise (cote front):
+
+1. Echange des cles publiques RSA via WebSocket.
+2. Chiffrement d'une cle AES avec la cle publique du peer.
+3. Envoi de messages chiffres en AES-GCM.
+
+Ce flux est expose dans l'onglet "Secure Chat" du front.
+
 ## Conventions API
 
 - Les donnees binaires sont en base64 (suffixe `_base64`).
