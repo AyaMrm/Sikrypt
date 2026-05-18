@@ -177,11 +177,7 @@ pub fn rc6_encrypt_cbc(
     })
 }
 
-pub fn rc6_decrypt_cbc(
-    key: &[u8],
-    iv: &[u8],
-    ciphertext: &[u8],
-) -> Result<Vec<u8>, FinalistError> {
+pub fn rc6_decrypt_cbc(key: &[u8], iv: &[u8], ciphertext: &[u8]) -> Result<Vec<u8>, FinalistError> {
     if key.len() != 16 {
         return Err(FinalistError::InvalidKeyLength);
     }
