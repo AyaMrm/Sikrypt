@@ -25,7 +25,6 @@ const symmetricOptions = [
   { id: "rc4", label: "RC4" },
   { id: "des", label: "DES" },
   { id: "aes", label: "AES" },
-  { id: "rijndael", label: "Rijndael" },
   { id: "twofish", label: "Twofish" },
   { id: "serpent", label: "Serpent" },
   { id: "rc6", label: "RC6" }
@@ -39,7 +38,7 @@ const hashOptions = [
 ];
 
 const signatureOptions = [
-  { id: "rsa-pss", label: "RSA-PSS (educatif)" },
+  { id: "rsa-pss", label: "RSA-PSS " },
   { id: "rsa-pkcs1v15", label: "RSA PKCS#1 v1.5" },
   { id: "dsa", label: "DSA" },
   { id: "ecdsa", label: "ECDSA" },
@@ -74,6 +73,23 @@ function base64ToBytes(value) {
   return Uint8Array.from(binary, (char) => char.charCodeAt(0));
 }
 
+function normalizeHex(value) {
+  return value.replace(/\s+/g, "");
+}
+
+function isValidHex(value) {
+  return value.length % 2 === 0 && /^[0-9a-fA-F]+$/.test(value);
+}
+
+function byteLength(value) {
+  return new TextEncoder().encode(value).length;
+}
+
+function isHexBytes(value, byteLen) {
+  const normalized = normalizeHex(value);
+  return isValidHex(normalized) && normalized.length === byteLen * 2;
+}
+
 function toWsUrl(apiBase, room, name) {
   const url = new URL(apiBase);
   url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
@@ -101,6 +117,102 @@ function modPow(base, exponent, modulus) {
   }
 
   return result;
+}
+
+function mod(value, modulus) {
+  return ((value % modulus) + modulus) % modulus;
+}
+
+function modInverse(value, modulus) {
+  let a = mod(value, modulus);
+  let b = modulus;
+  let x0 = 1;
+  let x1 = 0;
+
+  while (b !== 0) {
+    const q = Math.floor(a / b);
+    [a, b] = [b, a % b];
+    [x0, x1] = [x1, x0 - q * x1];
+  }
+
+  if (a !== 1) {
+    return null;
+  }
+
+  return mod(x0, modulus);
+}
+
+function ecdsaPointAdd(p1, p2, curve) {
+  if (!p1) {
+    return p2;
+  }
+  if (!p2) {
+    return p1;
+  }
+
+  const { p, a } = curve;
+  if (p1.x === p2.x && mod(p1.y + p2.y, p) === 0) {
+    return null;
+  }
+
+  let slope = 0;
+  if (p1.x === p2.x && p1.y === p2.y) {
+    const numerator = mod(3 * p1.x * p1.x + a, p);
+    const denominator = modInverse(mod(2 * p1.y, p), p);
+    if (denominator === null) {
+      return null;
+    }
+    slope = mod(numerator * denominator, p);
+  } else {
+    const numerator = mod(p2.y - p1.y, p);
+    const denominator = modInverse(mod(p2.x - p1.x, p), p);
+    if (denominator === null) {
+      return null;
+    }
+    slope = mod(numerator * denominator, p);
+  }
+
+  const x3 = mod(slope * slope - p1.x - p2.x, p);
+  const y3 = mod(slope * (p1.x - x3) - p1.y, p);
+
+  return { x: x3, y: y3 };
+}
+
+function ecdsaScalarMul(scalar, point, curve) {
+  let result = null;
+  let addend = point;
+  let k = scalar;
+
+  while (k > 0) {
+    if (k & 1) {
+      result = ecdsaPointAdd(result, addend, curve);
+    }
+    addend = ecdsaPointAdd(addend, addend, curve);
+    k >>= 1;
+  }
+
+  return result;
+}
+
+function deriveEcdsaPublicKey(privateKey) {
+  const curve = {
+    p: 17,
+    a: 2,
+    b: 2,
+    g: { x: 5, y: 1 },
+    n: 19
+  };
+
+  if (privateKey <= 0 || privateKey >= curve.n) {
+    throw new Error("invalid_private_key");
+  }
+
+  const point = ecdsaScalarMul(privateKey, curve.g, curve);
+  if (!point) {
+    throw new Error("point_at_infinity");
+  }
+
+  return point;
 }
 
 async function apiPost(path, body) {
@@ -477,19 +589,68 @@ function SymmetricPanel() {
     try {
       let path = "";
       let payload = {};
+      let normalizedCiphertext = ciphertext;
+
+      if (algo === "des") {
+        const keyIsHex = isHexBytes(key, 8);
+        const ivIsHex = isHexBytes(iv, 8);
+
+        if (!keyIsHex && byteLength(key) !== 8) {
+          setError("La cle DES doit faire 8 bytes.");
+          setLoading(false);
+          return;
+        }
+        if (!ivIsHex && byteLength(iv) !== 8) {
+          setError("L'IV DES doit faire 8 bytes.");
+          setLoading(false);
+          return;
+        }
+
+        if (keyIsHex) {
+          const normalizedKey = normalizeHex(key);
+          if (normalizedKey !== key) {
+            setKey(normalizedKey);
+          }
+        }
+        if (ivIsHex) {
+          const normalizedIv = normalizeHex(iv);
+          if (normalizedIv !== iv) {
+            setIv(normalizedIv);
+          }
+        }
+      }
+
+      if (mode !== "encrypt") {
+        normalizedCiphertext = normalizeHex(ciphertext);
+        if (!normalizedCiphertext) {
+          setError("ciphertext_hex est requis.");
+          setLoading(false);
+          return;
+        }
+        if (!isValidHex(normalizedCiphertext)) {
+          setError(
+            "ciphertext_hex doit etre un hex valide avec un nombre pair de caracteres."
+          );
+          setLoading(false);
+          return;
+        }
+        if (normalizedCiphertext !== ciphertext) {
+          setCiphertext(normalizedCiphertext);
+        }
+      }
 
       if (algo === "rc4") {
         path = `/symmetric/rc4/${mode}`;
         payload =
           mode === "encrypt"
             ? { plaintext, key }
-            : { ciphertext_hex: ciphertext, key };
+            : { ciphertext_hex: normalizedCiphertext, key };
       } else {
         path = `/symmetric/${algo}/${mode}`;
         payload =
           mode === "encrypt"
             ? { plaintext, key, iv }
-            : { ciphertext_hex: ciphertext, key, iv };
+            : { ciphertext_hex: normalizedCiphertext, key, iv };
       }
 
       const data = await apiPost(path, payload);
@@ -700,9 +861,9 @@ function AsymmetricPanel() {
       <div className="card">
         <Field label="Algorithme">
           <select value={algo} onChange={(event) => setAlgo(event.target.value)}>
-            <option value="rsa-oaep">RSA-OAEP (moderne)</option>
-            <option value="dh">Diffie-Hellman (educatif)</option>
-            <option value="elgamal">ElGamal (educatif)</option>
+            <option value="rsa-oaep">RSA-OAEP</option>
+            <option value="dh">Diffie-Hellman</option>
+            <option value="elgamal">ElGamal</option>
             <option value="ecc-ecdh">ECC P-256 (ECDH)</option>
           </select>
         </Field>
@@ -1274,7 +1435,7 @@ function SignaturesPanel() {
   const [gValue, setGValue] = useState("5");
   const [dsaQ, setDsaQ] = useState("11");
   const [privateKey, setPrivateKey] = useState("6");
-  const [publicKey, setPublicKey] = useState("8");
+  const [publicKey, setPublicKey] = useState("9");
   const [ephemeralKey, setEphemeralKey] = useState("7");
   const [ecdsaPrivate, setEcdsaPrivate] = useState("7");
   const [ecdsaPublicX, setEcdsaPublicX] = useState("0");
@@ -1299,10 +1460,40 @@ function SignaturesPanel() {
     }
   };
 
+  const deriveEcdsaKey = () => {
+    try {
+      const point = deriveEcdsaPublicKey(Number(ecdsaPrivate));
+      setEcdsaPublicX(String(point.x));
+      setEcdsaPublicY(String(point.y));
+    } catch (err) {
+      setError("Impossible de calculer la cle publique ECDSA");
+    }
+  };
+
   const sign = async () => {
     setError("");
     setVerifyResult(null);
     setLoading(true);
+    setMessageVerify(messageSign);
+
+    if (algo === "dsa" || algo === "elgamal") {
+      try {
+        const pub = modPow(gValue || 0, privateKey || 0, pValue || 1).toString();
+        setPublicKey(pub);
+      } catch (err) {
+        // ignore derive errors here; backend will validate inputs
+      }
+    }
+
+    if (algo === "ecdsa") {
+      try {
+        const point = deriveEcdsaPublicKey(Number(ecdsaPrivate));
+        setEcdsaPublicX(String(point.x));
+        setEcdsaPublicY(String(point.y));
+      } catch (err) {
+        // ignore derive errors here; backend will validate inputs
+      }
+    }
 
     try {
       let path = "";
@@ -1491,6 +1682,9 @@ function SignaturesPanel() {
             <Field label="k (ephemere)">
               <input value={ephemeralKey} onChange={(event) => setEphemeralKey(event.target.value)} />
             </Field>
+            <button type="button" className="ghost" onClick={deriveEcdsaKey}>
+              Deriver la cle publique
+            </button>
           </div>
         ) : null}
 
@@ -1591,11 +1785,7 @@ export default function App() {
             Teste rapidement les algorithmes classic, symmetric, asymmetric, signatures et hash.
           </p>
         </div>
-        <div className="hero-card">
-          <h2>{activeLabel}</h2>
-          <p>Backend: {API_BASE}</p>
-          <span className="pill">API educative</span>
-        </div>
+        
       </header>
 
       <nav className="tabs">
@@ -1619,7 +1809,7 @@ export default function App() {
       {activeTab === "hash" ? <HashPanel /> : null}
 
       <footer className="footer">
-        <p>Projet educatif - Sikrypt</p>
+        <p>- Sikrypt -</p>
       </footer>
     </div>
   );
