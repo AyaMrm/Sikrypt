@@ -56,7 +56,23 @@ fn cors_layer() -> CorsLayer {
     }
 }
 
+fn require_api_key_configuration() -> String {
+    let key = std::env::var("SIKRYPT_API_KEY")
+        .ok()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty());
+
+    assert!(
+        key.is_some(),
+        "SIKRYPT_API_KEY must be configured before starting Sikrypt"
+    );
+
+    key.unwrap()
+}
+
 pub fn create_app() -> Router {
+    let api_key = require_api_key_configuration();
+
     let request_id_header = HeaderName::from_static("x-request-id");
     let timeout_ms = read_env_u64("SIKRYPT_REQUEST_TIMEOUT_MS", 15000);
     let concurrency_limit = read_env_usize("SIKRYPT_CONCURRENCY_LIMIT", 128);
@@ -65,7 +81,7 @@ pub fn create_app() -> Router {
         .merge(routes::asymmetric::router())
         .merge(routes::classic::router())
         .merge(routes::comms::router())
-        .merge(routes::crypto::router())
+        .merge(routes::crypto::router(api_key))
         .merge(routes::health::router())
         .merge(routes::hash::router())
         .merge(routes::openapi::router())

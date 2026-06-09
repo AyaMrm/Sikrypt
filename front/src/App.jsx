@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, useEffect } from "react";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:3000";
+const API_KEY = import.meta.env.VITE_API_KEY || "";
 const WS_API_KEY = import.meta.env.VITE_WS_API_KEY || "";
 
 const tabs = [
@@ -219,7 +220,8 @@ async function apiPost(path, body) {
   const response = await fetch(`${API_BASE}${path}`, {
     method: "POST",
     headers: {
-      "content-type": "application/json"
+      "content-type": "application/json",
+      "x-api-key": API_KEY
     },
     body: JSON.stringify(body)
   });

@@ -8,29 +8,52 @@ use backend::app::create_app;
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 use serde_json::{Value, json};
+use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::{Mutex, MutexGuard, OnceLock};
 use tower::ServiceExt;
 
 static ENV_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+const DEFAULT_TEST_API_KEY: &str = "test-api-key";
 
 fn env_lock() -> MutexGuard<'static, ()> {
-    ENV_LOCK.get_or_init(|| Mutex::new(())).lock().unwrap()
+    ENV_LOCK
+        .get_or_init(|| Mutex::new(()))
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
 fn ensure_api_key_disabled() -> MutexGuard<'static, ()> {
     let guard = env_lock();
-    // Tests run in-process and need a predictable auth-free environment.
+    // The app now requires a configured API key, so tests install a stable one.
     unsafe {
-        std::env::remove_var("SIKRYPT_API_KEY");
+        std::env::set_var("SIKRYPT_API_KEY", DEFAULT_TEST_API_KEY);
     }
     guard
 }
 
 fn to_json_request(path: &str, payload: Value) -> Request<Body> {
-    Request::post(path)
+    let mut request = Request::post(path)
         .header("content-type", "application/json")
         .body(Body::from(payload.to_string()))
-        .unwrap()
+        .unwrap();
+
+    if path.starts_with("/crypto/") {
+        let api_key = std::env::var("SIKRYPT_API_KEY").unwrap_or_default();
+        request
+            .headers_mut()
+            .insert("x-api-key", api_key.parse().unwrap());
+    }
+
+    request
+}
+
+fn crypto_empty_request(path: &str) -> Request<Body> {
+    let mut request = Request::post(path).body(Body::empty()).unwrap();
+    let api_key = std::env::var("SIKRYPT_API_KEY").unwrap_or_default();
+    request
+        .headers_mut()
+        .insert("x-api-key", api_key.parse().unwrap());
+    request
 }
 
 fn to_json_request_with_key(path: &str, payload: Value, api_key: &str) -> Request<Body> {
@@ -53,6 +76,17 @@ fn clear_api_key(_guard: &MutexGuard<'static, ()>) {
     unsafe {
         std::env::remove_var("SIKRYPT_API_KEY");
     }
+}
+
+#[tokio::test]
+async fn create_app_requires_api_key_configuration() {
+    let _guard = env_lock();
+    unsafe {
+        std::env::remove_var("SIKRYPT_API_KEY");
+    }
+
+    let result = catch_unwind(AssertUnwindSafe(create_app));
+    assert!(result.is_err());
 }
 
 #[tokio::test]
@@ -104,11 +138,7 @@ async fn x25519_keygen_returns_base64_keys() {
     let _env_guard = ensure_api_key_disabled();
     let app = create_app();
     let response = app
-        .oneshot(
-            Request::post("/crypto/keys/x25519")
-                .body(Body::empty())
-                .unwrap(),
-        )
+        .oneshot(crypto_empty_request("/crypto/keys/x25519"))
         .await
         .unwrap();
 
@@ -284,11 +314,7 @@ async fn secure_channel_roundtrip() {
 
     let sender_keys = app
         .clone()
-        .oneshot(
-            Request::post("/crypto/keys/x25519")
-                .body(Body::empty())
-                .unwrap(),
-        )
+        .oneshot(crypto_empty_request("/crypto/keys/x25519"))
         .await
         .unwrap();
     assert_eq!(sender_keys.status(), StatusCode::OK);
@@ -297,11 +323,7 @@ async fn secure_channel_roundtrip() {
 
     let receiver_keys = app
         .clone()
-        .oneshot(
-            Request::post("/crypto/keys/x25519")
-                .body(Body::empty())
-                .unwrap(),
-        )
+        .oneshot(crypto_empty_request("/crypto/keys/x25519"))
         .await
         .unwrap();
     assert_eq!(receiver_keys.status(), StatusCode::OK);
@@ -428,11 +450,7 @@ async fn ed25519_sign_and_verify() {
 
     let keygen_response = app
         .clone()
-        .oneshot(
-            Request::post("/crypto/keys/ed25519")
-                .body(Body::empty())
-                .unwrap(),
-        )
+        .oneshot(crypto_empty_request("/crypto/keys/ed25519"))
         .await
         .unwrap();
     assert_eq!(keygen_response.status(), StatusCode::OK);

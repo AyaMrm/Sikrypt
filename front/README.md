@@ -34,14 +34,16 @@ Le front est accessible sur `http://127.0.0.1:5173`.
 
 ## Configuration
 
-Le front utilise l'URL du backend via la variable d'environnement suivante:
+Le front utilise l'URL du backend via les variables d'environnement suivantes:
 
+- `VITE_API_KEY` (obligatoire, envoye dans `x-api-key` pour les routes `/crypto/*`)
 - `VITE_API_BASE` (defaut: `http://127.0.0.1:3000`)
 
 Exemple d'un fichier `.env` a la racine du dossier `front`:
 
 ```
 VITE_API_BASE=http://127.0.0.1:3000
+VITE_API_KEY=changeme
 VITE_WS_API_KEY=
 ```
 

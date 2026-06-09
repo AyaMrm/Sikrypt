@@ -2,7 +2,7 @@
 
 API de cryptographie educative ecrite en Rust (Axum). Le backend expose :
 
-- des endpoints modernes sous `/crypto/*` (base64 partout, rate limit, API key optionnelle)
+- des endpoints modernes sous `/crypto/*` (base64 partout, rate limit, API key obligatoire)
 - des endpoints pedagogiques pour apprendre les algorithmes classiques et les bases crypto
 
 Le front (dans `../front`) est volontairement minimal et sert de demo.
@@ -50,7 +50,7 @@ Ce flux est expose dans l'onglet "Secure Chat" du front.
 
 ## Securite et limites
 
-- API key optionnelle: si `SIKRYPT_API_KEY` est defini, les routes `/crypto/*` exigent `x-api-key`.
+- API key obligatoire: `SIKRYPT_API_KEY` doit etre defini, et les routes `/crypto/*` exigent `x-api-key`.
 - Rate limit: applique sur `/crypto/*` (par API key et par IP).
 - Limite de taille du body: 64 KB (globale).
 
@@ -73,7 +73,7 @@ Le serveur ecoute par defaut sur `http://127.0.0.1:3000`.
 
 - `SIKRYPT_HOST` (defaut: `127.0.0.1`)
 - `SIKRYPT_PORT` (defaut: `3000`)
-- `SIKRYPT_API_KEY` (optionnel, protege `/crypto/*`)
+- `SIKRYPT_API_KEY` (obligatoire, protege `/crypto/*`)
 - `SIKRYPT_REQUEST_TIMEOUT_MS` (defaut: `15000`)
 - `SIKRYPT_CONCURRENCY_LIMIT` (defaut: `128`)
 - `SIKRYPT_CORS_ORIGINS` (defaut: `http://localhost:5173,http://127.0.0.1:5173`)

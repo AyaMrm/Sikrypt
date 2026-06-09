@@ -2,7 +2,7 @@
 
 Sikrypt est une API de cryptographie educative. Le backend (Rust/Axum) expose :
 
-- des endpoints modernes sous `/crypto/*` (base64 partout, rate limit, API key optionnelle)
+- des endpoints modernes sous `/crypto/*` (base64 partout, rate limit, API key obligatoire)
 - des endpoints pedagogiques pour apprendre les algorithmes classiques
 
 Un front React/Vite minimal est fourni pour tester l API.
@@ -40,13 +40,14 @@ npm run dev
 
 - `SIKRYPT_HOST` (defaut: `127.0.0.1`)
 - `SIKRYPT_PORT` (defaut: `3000`)
-- `SIKRYPT_API_KEY` (optionnel, protege `/crypto/*`)
+- `SIKRYPT_API_KEY` (obligatoire, protege `/crypto/*`)
 - `SIKRYPT_REQUEST_TIMEOUT_MS` (defaut: `15000`)
 - `SIKRYPT_CONCURRENCY_LIMIT` (defaut: `128`)
 - `SIKRYPT_CORS_ORIGINS` (defaut: `http://localhost:5173,http://127.0.0.1:5173`)
 
 ### Front
 
+- `VITE_API_KEY` (obligatoire, envoye dans `x-api-key` pour `/crypto/*`)
 - `VITE_API_BASE` (defaut: `http://127.0.0.1:3000`)
 
 ```bash
