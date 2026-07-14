@@ -32,26 +32,35 @@ npm run dev
 
 Le front est accessible sur `http://127.0.0.1:5173`.
 
+## Docker
+
+Le front peut etre servi via Nginx dans la stack Docker racine.
+
+```bash
+docker compose up --build
+```
+
+Il sera accessible sur `http://localhost:8080` et pointera vers le backend en `https://localhost:3000`.
+
 ## Configuration
 
-Le front utilise l'URL du backend via les variables d'environnement suivantes:
+Le front parle au backend via un proxy local sur `/api` et `/ws/secure`.
+En mode dev, Vite relaie les requetes vers `https://localhost:3000`.
+En Docker, Nginx fait le relais vers le service backend.
 
-- `VITE_API_KEY` (obligatoire, envoye dans `x-api-key` pour les routes `/crypto/*`)
-- `VITE_API_BASE` (defaut: `http://127.0.0.1:3000`)
+La seule variable utile au front est:
 
-Exemple d'un fichier `.env` a la racine du dossier `front`:
+- `VITE_API_BASE` (optionnelle, defaut: `/api`)
 
-```
-VITE_API_BASE=http://127.0.0.1:3000
-VITE_API_KEY=changeme
-VITE_WS_API_KEY=
-```
+Le secret `SIKRYPT_API_KEY` reste cote serveur/proxy et n'est plus injecte dans le bundle React.
+En local, exporte `SIKRYPT_API_KEY` avant de lancer `npm run dev` pour que le proxy Vite ajoute bien l'en-tete.
 
 ## Demo communication securisee
 
 Le panneau "Secure Chat" fait une demo WebSocket:
 
-- Connexion a `ws://<backend>/ws/secure`
+- Connexion a `wss://<backend>/ws/secure`
+- Le front utilise le meme chemin `/ws/secure`, proxifie en dev et en Docker
 - Echange de cles RSA (partage de cle publique)
 - Chiffrement d'une cle AES avec RSA
 - Chiffrement des messages en AES-GCM

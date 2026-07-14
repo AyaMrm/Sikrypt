@@ -1,8 +1,6 @@
 import { useMemo, useRef, useState, useEffect } from "react";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:3000";
-const API_KEY = import.meta.env.VITE_API_KEY || "";
-const WS_API_KEY = import.meta.env.VITE_WS_API_KEY || "";
+const API_BASE = import.meta.env.VITE_API_BASE || "/api";
 
 const tabs = [
   { id: "classic", label: "Classic" },
@@ -92,14 +90,11 @@ function isHexBytes(value, byteLen) {
 }
 
 function toWsUrl(apiBase, room, name) {
-  const url = new URL(apiBase);
+  const url = new URL(apiBase, window.location.origin);
   url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
   url.pathname = "/ws/secure";
   url.searchParams.set("room", room);
   url.searchParams.set("name", name);
-  if (WS_API_KEY) {
-    url.searchParams.set("api_key", WS_API_KEY);
-  }
   return url.toString();
 }
 
@@ -220,8 +215,7 @@ async function apiPost(path, body) {
   const response = await fetch(`${API_BASE}${path}`, {
     method: "POST",
     headers: {
-      "content-type": "application/json",
-      "x-api-key": API_KEY
+      "content-type": "application/json"
     },
     body: JSON.stringify(body)
   });

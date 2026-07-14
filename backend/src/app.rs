@@ -34,7 +34,10 @@ fn read_env_usize(name: &str, default: usize) -> usize {
 
 fn cors_layer() -> CorsLayer {
     let origins = std::env::var("SIKRYPT_CORS_ORIGINS")
-        .unwrap_or_else(|_| "http://localhost:5173,http://127.0.0.1:5173".to_string());
+        .unwrap_or_else(|_| {
+            "http://localhost:5173,http://127.0.0.1:5173,http://localhost:8080,http://127.0.0.1:8080"
+                .to_string()
+        });
 
     if origins.trim() == "*" {
         CorsLayer::new()
@@ -62,12 +65,18 @@ fn require_api_key_configuration() -> String {
         .map(|value| value.trim().to_string())
         .filter(|value| !value.is_empty());
 
-    assert!(
-        key.is_some(),
-        "SIKRYPT_API_KEY must be configured before starting Sikrypt"
-    );
+    if let Some(key) = key {
+        return key;
+    }
 
-    key.unwrap()
+    if cfg!(debug_assertions) {
+        tracing::warn!(
+            "SIKRYPT_API_KEY is not set; using a development fallback key. Set SIKRYPT_API_KEY for production."
+        );
+        return "dev-sikrypt-api-key".to_string();
+    }
+
+    panic!("SIKRYPT_API_KEY must be configured before starting Sikrypt");
 }
 
 pub fn create_app() -> Router {
