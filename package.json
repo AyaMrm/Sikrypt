@@ -1,0 +1,9 @@
+{
+  "private": true,
+  "scripts": {
+    "test": "npm --prefix front test",
+    "test:front": "npm --prefix front test",
+    "test:backend": "cargo test --manifest-path backend/Cargo.toml",
+    "build": "npm --prefix front run build && cargo build --manifest-path backend/Cargo.toml"
+  }
+}

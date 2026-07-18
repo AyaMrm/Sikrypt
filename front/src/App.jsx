@@ -1775,13 +1775,36 @@ export default function App() {
     <div className="page">
       <header className="hero">
         <div>
-          <p className="kicker">Welcome to </p>
+          <p className="kicker">Cryptography studio</p>
           <h1>Sikrypt</h1>
           <p className="subtitle">
-            Teste rapidement les algorithmes classic, symmetric, asymmetric, signatures et hash.
+            Une interface de demonstration claire pour tester les algorithmes classic,
+            symmetric, asymmetric, signatures et hash.
           </p>
         </div>
-        
+
+        <aside className="hero-card" aria-label="Resume du projet">
+          <h2>Vue d'ensemble</h2>
+          <p>
+            API HTTPS, formats base64 et interface organisee pour presenter les operations
+            crypto proprement.
+          </p>
+          <div className="hero-metrics">
+            <div>
+              <strong>6</strong>
+              <span>familles d'outils</span>
+            </div>
+            <div>
+              <strong>HTTPS</strong>
+              <span>backend securise</span>
+            </div>
+            <div>
+              <strong>{activeLabel}</strong>
+              <span>onglet actif</span>
+            </div>
+          </div>
+          <span className="pill">Demo academique professionnelle</span>
+        </aside>
       </header>
 
       <nav className="tabs">

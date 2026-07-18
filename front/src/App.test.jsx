@@ -6,7 +6,7 @@ describe("App", () => {
   it("renders the hero and default classic tab", () => {
     render(<App />);
 
-    expect(screen.getByText("Playground educatif")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Sikrypt" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Classic" })).toBeInTheDocument();
     expect(screen.getByText("Outils d'analyse")).toBeInTheDocument();
   });
@@ -17,7 +17,7 @@ describe("App", () => {
 
     await user.click(screen.getByRole("button", { name: "Hash" }));
 
-    expect(screen.getByRole("heading", { name: "Hash" })).toBeInTheDocument();
-    expect(screen.getByText("HMAC-SHA256")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Hash" })).toHaveClass("active");
+    expect(screen.getByRole("option", { name: "HMAC-SHA256" })).toBeInTheDocument();
   });
 });

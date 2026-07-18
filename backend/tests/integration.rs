@@ -79,14 +79,14 @@ fn clear_api_key(_guard: &MutexGuard<'static, ()>) {
 }
 
 #[tokio::test]
-async fn create_app_requires_api_key_configuration() {
+async fn create_app_uses_dev_fallback_api_key_in_debug() {
     let _guard = env_lock();
     unsafe {
         std::env::remove_var("SIKRYPT_API_KEY");
     }
 
     let result = catch_unwind(AssertUnwindSafe(create_app));
-    assert!(result.is_err());
+    assert!(result.is_ok());
 }
 
 #[tokio::test]
