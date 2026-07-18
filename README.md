@@ -2,7 +2,7 @@
 
 Sikrypt est une API de cryptographie educative. Le backend (Rust/Axum) expose :
 
-- des endpoints modernes sous `/crypto/*` (base64 partout, rate limit, API key optionnelle)
+- des endpoints modernes sous `/crypto/*` (base64 partout, rate limit, API key obligatoire)
 - des endpoints pedagogiques pour apprendre les algorithmes classiques
 
 Un front React/Vite minimal est fourni pour tester l API.
@@ -29,10 +29,22 @@ npm install
 npm run dev
 ```
 
+## Docker
+
+Lance la stack complete avec:
+
+```bash
+docker compose up --build
+```
+
+- Backend: `https://localhost:3000`
+- Front: `http://localhost:8080`
+- API key: utilise `SIKRYPT_API_KEY` si tu veux remplacer la valeur par defaut `changeme`
+
 ## Documentation
 
-- OpenAPI JSON: `http://127.0.0.1:3000/openapi.json`
-- Swagger UI: `http://127.0.0.1:3000/docs`
+- OpenAPI JSON: `https://localhost:3000/openapi.json`
+- Swagger UI: `https://localhost:3000/docs`
 
 ## Config rapide
 
@@ -40,17 +52,20 @@ npm run dev
 
 - `SIKRYPT_HOST` (defaut: `127.0.0.1`)
 - `SIKRYPT_PORT` (defaut: `3000`)
-- `SIKRYPT_API_KEY` (optionnel, protege `/crypto/*`)
+- `SIKRYPT_API_KEY` (obligatoire, protege `/crypto/*`)
+- `SIKRYPT_TLS_CERT_PATH` et `SIKRYPT_TLS_KEY_PATH` (optionnels, sinon un certificat auto-signe est genere)
 - `SIKRYPT_REQUEST_TIMEOUT_MS` (defaut: `15000`)
 - `SIKRYPT_CONCURRENCY_LIMIT` (defaut: `128`)
 - `SIKRYPT_CORS_ORIGINS` (defaut: `http://localhost:5173,http://127.0.0.1:5173`)
 
 ### Front
 
-- `VITE_API_BASE` (defaut: `http://127.0.0.1:3000`)
+- `VITE_API_BASE` (optionnel, defaut: `/api`)
+
+Le secret `SIKRYPT_API_KEY` n'est plus injecte dans le bundle front. Il est ajoute au niveau du proxy Nginx ou du proxy Vite en dev.
 
 ```bash
-VITE_API_BASE=http://127.0.0.1:3000
+VITE_API_BASE=/api
 ```
 
 ## Architecture rapide

@@ -1,7 +1,6 @@
 import { useMemo, useRef, useState, useEffect } from "react";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "http://127.0.0.1:3000";
-const WS_API_KEY = import.meta.env.VITE_WS_API_KEY || "";
+const API_BASE = import.meta.env.VITE_API_BASE || "/api";
 
 const tabs = [
   { id: "classic", label: "Classic" },
@@ -91,14 +90,11 @@ function isHexBytes(value, byteLen) {
 }
 
 function toWsUrl(apiBase, room, name) {
-  const url = new URL(apiBase);
+  const url = new URL(apiBase, window.location.origin);
   url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
   url.pathname = "/ws/secure";
   url.searchParams.set("room", room);
   url.searchParams.set("name", name);
-  if (WS_API_KEY) {
-    url.searchParams.set("api_key", WS_API_KEY);
-  }
   return url.toString();
 }
 
@@ -1779,13 +1775,36 @@ export default function App() {
     <div className="page">
       <header className="hero">
         <div>
-          <p className="kicker">Welcome to </p>
+          <p className="kicker">Cryptography studio</p>
           <h1>Sikrypt</h1>
           <p className="subtitle">
-            Teste rapidement les algorithmes classic, symmetric, asymmetric, signatures et hash.
+            Une interface de demonstration claire pour tester les algorithmes classic,
+            symmetric, asymmetric, signatures et hash.
           </p>
         </div>
-        
+
+        <aside className="hero-card" aria-label="Resume du projet">
+          <h2>Vue d'ensemble</h2>
+          <p>
+            API HTTPS, formats base64 et interface organisee pour presenter les operations
+            crypto proprement.
+          </p>
+          <div className="hero-metrics">
+            <div>
+              <strong>6</strong>
+              <span>familles d'outils</span>
+            </div>
+            <div>
+              <strong>HTTPS</strong>
+              <span>backend securise</span>
+            </div>
+            <div>
+              <strong>{activeLabel}</strong>
+              <span>onglet actif</span>
+            </div>
+          </div>
+          <span className="pill">Demo academique professionnelle</span>
+        </aside>
       </header>
 
       <nav className="tabs">

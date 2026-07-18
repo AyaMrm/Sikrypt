@@ -1,24 +1,37 @@
 :root {
   color-scheme: light;
   font-family: "Space Grotesk", sans-serif;
-  background-color: #f6f2ea;
-  color: #1f1c16;
-  --ink: #1f1c16;
-  --muted: #6e6257;
-  --accent: #c65d3a;
-  --accent-2: #1b8a8f;
-  --card: #ffffff;
-  --border: #eadfd2;
-  --shadow: 0 20px 60px rgba(24, 16, 5, 0.12);
+  background-color: #f3efe8;
+  color: #201a16;
+  --ink: #201a16;
+  --muted: #6f655c;
+  --accent: #b84f2c;
+  --accent-2: #16757a;
+  --accent-3: #5f4b8b;
+  --card: rgba(255, 255, 255, 0.86);
+  --border: rgba(102, 84, 66, 0.16);
+  --shadow: 0 24px 70px rgba(27, 18, 7, 0.12);
 }
 
 * {
   box-sizing: border-box;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
-  background: radial-gradient(circle at top left, #fef7ec 0%, #f6f2ea 40%, #efe4d5 100%);
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(230, 180, 146, 0.22) 0%, transparent 34%),
+    radial-gradient(circle at top right, rgba(22, 117, 122, 0.12) 0%, transparent 30%),
+    linear-gradient(160deg, #faf6ef 0%, #f3efe8 45%, #ece3d7 100%);
+  color: var(--ink);
+  line-height: 1.5;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 
 #root {
@@ -26,51 +39,88 @@ body {
 }
 
 .page {
-  max-width: 1100px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 48px 24px 80px;
+  padding: 48px 24px 72px;
 }
 
 .hero {
   display: flex;
   flex-wrap: wrap;
-  gap: 24px;
-  align-items: flex-start;
+  gap: 28px;
+  align-items: stretch;
   justify-content: space-between;
   animation: fadeIn 0.8s ease;
 }
 
 .kicker {
   text-transform: uppercase;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.22em;
   font-size: 0.75rem;
   color: var(--muted);
+  margin: 0;
 }
 
 h1 {
   font-family: "Fraunces", serif;
   font-size: clamp(2rem, 4vw, 3.4rem);
-  margin: 12px 0;
+  line-height: 0.95;
+  margin: 12px 0 14px;
 }
 
 .subtitle {
   font-size: 1.05rem;
   color: var(--muted);
   max-width: 520px;
+  margin: 0;
 }
 
 .hero-card {
-  background: var(--card);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 243, 235, 0.92));
   border: 1px solid var(--border);
-  border-radius: 18px;
+  border-radius: 24px;
   padding: 24px;
   box-shadow: var(--shadow);
-  min-width: 240px;
+  min-width: 280px;
+  max-width: 380px;
+  backdrop-filter: blur(10px);
 }
 
 .hero-card h2 {
   margin: 0 0 8px;
-  font-size: 1.4rem;
+  font-size: 1.25rem;
+}
+
+.hero-card p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.hero-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 20px 0 18px;
+}
+
+.hero-metrics div {
+  padding: 14px 12px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(102, 84, 66, 0.1);
+}
+
+.hero-metrics strong {
+  display: block;
+  font-family: "Fraunces", serif;
+  font-size: 1rem;
+  margin-bottom: 4px;
+}
+
+.hero-metrics span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.82rem;
 }
 
 .pill {
@@ -78,7 +128,7 @@ h1 {
   margin-top: 12px;
   padding: 6px 12px;
   border-radius: 999px;
-  background: rgba(198, 93, 58, 0.12);
+  background: rgba(184, 79, 44, 0.12);
   color: var(--accent);
   font-weight: 600;
 }
@@ -86,30 +136,38 @@ h1 {
 .tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  margin: 32px 0;
+  gap: 10px;
+  margin: 30px 0 28px;
+  padding: 10px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.45);
+  border: 1px solid rgba(102, 84, 66, 0.08);
+  box-shadow: 0 12px 32px rgba(27, 18, 7, 0.05);
 }
 
 .tabs button {
   border: 1px solid var(--border);
-  background: transparent;
-  padding: 10px 18px;
+  background: rgba(255, 255, 255, 0.78);
+  padding: 11px 18px;
   border-radius: 999px;
   cursor: pointer;
   font-weight: 600;
-  transition: all 0.2s ease;
+  color: var(--ink);
+  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease,
+    color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .tabs button.active {
-  background: var(--ink);
+  background: linear-gradient(135deg, var(--ink), #3a302a);
   color: #fff;
   border-color: var(--ink);
+  box-shadow: 0 10px 24px rgba(32, 26, 22, 0.2);
 }
 
 .panel {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 24px;
+  gap: 20px;
   align-items: start;
   animation: slideUp 0.6s ease;
 }
@@ -117,12 +175,13 @@ h1 {
 .card {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 18px;
-  padding: 24px;
+  border-radius: 24px;
+  padding: 22px;
   box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
+  backdrop-filter: blur(10px);
 }
 
 .field {
@@ -150,12 +209,14 @@ h1 {
 input,
 select,
 textarea {
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 10px 12px;
+  border: 1px solid rgba(102, 84, 66, 0.16);
+  border-radius: 14px;
+  padding: 11px 13px;
   font-family: inherit;
   font-size: 0.95rem;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--ink);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 textarea {
@@ -167,13 +228,14 @@ button[type="submit"],
 .hero-card button,
 .card button {
   border: none;
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--accent), #dd6f44);
   color: #fff;
   padding: 12px 18px;
   border-radius: 12px;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  box-shadow: 0 10px 24px rgba(184, 79, 44, 0.24);
 }
 
 button:disabled {
@@ -183,25 +245,30 @@ button:disabled {
 
 button:not(:disabled):hover {
   transform: translateY(-1px);
+  filter: saturate(1.04);
 }
 
 button.ghost {
   background: transparent;
   color: var(--ink);
-  border: 1px dashed var(--border);
+  border: 1px dashed rgba(102, 84, 66, 0.26);
+  box-shadow: none;
 }
 
 .result-card {
-  background: #14110d;
+  background: linear-gradient(180deg, #181310, #221a16);
   color: #f7f2ea;
-  border-radius: 18px;
+  border-radius: 24px;
   padding: 24px;
   box-shadow: var(--shadow);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .result-card pre {
   white-space: pre-wrap;
   word-break: break-word;
+  margin: 0;
+  font-size: 0.92rem;
 }
 
 .result-header {
@@ -211,8 +278,12 @@ button.ghost {
   gap: 12px;
 }
 
+.result-header h3 {
+  margin: 0;
+}
+
 .result-card button {
-  background: var(--accent-2);
+  background: linear-gradient(135deg, var(--accent-2), #1f9498);
 }
 
 .row {
@@ -230,6 +301,7 @@ button.ghost {
 .error {
   color: #b00020;
   font-weight: 600;
+  margin: 0;
 }
 
 .status {
@@ -306,9 +378,44 @@ button.ghost {
 }
 
 .footer {
-  margin-top: 60px;
+  margin-top: 56px;
   color: var(--muted);
   text-align: center;
+}
+
+.footer p {
+  margin: 0;
+}
+
+@media (max-width: 800px) {
+  .page {
+    padding: 32px 16px 56px;
+  }
+
+  .hero {
+    flex-direction: column;
+  }
+
+  .hero-card {
+    max-width: none;
+  }
+
+  .hero-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .tabs {
+    padding: 8px;
+  }
+
+  .tabs button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .panel {
+    grid-template-columns: 1fr;
+  }
 }
 
 @keyframes fadeIn {

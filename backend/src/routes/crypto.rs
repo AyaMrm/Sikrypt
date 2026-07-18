@@ -2,7 +2,7 @@ use aes_gcm::{Aes256Gcm, KeyInit, aead::Aead, aead::Payload};
 use axum::middleware::Next;
 use axum::{
     Router,
-    extract::{ConnectInfo, Json},
+    extract::{ConnectInfo, Json, State},
     http::{Request, StatusCode},
     middleware,
     response::{IntoResponse, Response},
@@ -52,27 +52,23 @@ const RATE_LIMIT_PER_IP: u32 = 120;
 static RATE_LIMIT_STATE: once_cell::sync::Lazy<Mutex<HashMap<String, (Instant, u32)>>> =
     once_cell::sync::Lazy::new(|| Mutex::new(HashMap::new()));
 
-fn expected_api_key() -> Option<String> {
-    std::env::var("SIKRYPT_API_KEY")
-        .ok()
-        .filter(|value| !value.trim().is_empty())
-}
+async fn require_api_key(
+    State(expected): State<String>,
+    req: Request<axum::body::Body>,
+    next: Next,
+) -> Response {
+    let provided = req
+        .headers()
+        .get("x-api-key")
+        .and_then(|value| value.to_str().ok());
 
-async fn require_api_key(req: Request<axum::body::Body>, next: Next) -> Response {
-    if let Some(expected) = expected_api_key() {
-        let provided = req
-            .headers()
-            .get("x-api-key")
-            .and_then(|value| value.to_str().ok());
-
-        if provided != Some(expected.as_str()) {
-            return ApiError::new(
-                StatusCode::UNAUTHORIZED,
-                "invalid_api_key",
-                "Missing or invalid API key",
-            )
-            .into_response();
-        }
+    if provided != Some(expected.as_str()) {
+        return ApiError::new(
+            StatusCode::UNAUTHORIZED,
+            "invalid_api_key",
+            "Missing or invalid API key",
+        )
+        .into_response();
     }
 
     next.run(req).await
@@ -619,7 +615,7 @@ async fn rsa_pss_verify(
     Ok(Json(VerifyResponse { valid }))
 }
 
-pub fn router() -> Router {
+pub fn router(expected_api_key: String) -> Router {
     Router::new()
         .route("/crypto/keys/x25519", post(x25519_keygen))
         .route("/crypto/keys/ed25519", post(ed25519_keygen))
@@ -639,5 +635,8 @@ pub fn router() -> Router {
         .route("/crypto/rsa/pss/sign", post(rsa_pss_sign))
         .route("/crypto/rsa/pss/verify", post(rsa_pss_verify))
         .layer(middleware::from_fn(rate_limit))
-        .layer(middleware::from_fn(require_api_key))
+        .layer(middleware::from_fn_with_state(
+            expected_api_key,
+            require_api_key,
+        ))
 }

@@ -1,5 +1,6 @@
 # Rust
 /backend/target/
+/target/
 
 # Node
 /front/node_modules/

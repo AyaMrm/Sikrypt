@@ -1,0 +1,27 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    environment:
+      SIKRYPT_HOST: 0.0.0.0
+      SIKRYPT_PORT: 3000
+      SIKRYPT_API_KEY: ${SIKRYPT_API_KEY:-changeme}
+      SIKRYPT_CORS_ORIGINS: http://localhost:8080,http://127.0.0.1:8080
+    ports:
+      - "3000:3000"
+    volumes:
+      - sikrypt-tls:/tmp/sikrypt-tls
+
+  front:
+    build:
+      context: ./front
+    environment:
+      SIKRYPT_API_KEY: ${SIKRYPT_API_KEY:-changeme}
+      SIKRYPT_WS_API_KEY: ${SIKRYPT_WS_API_KEY:-}
+    depends_on:
+      - backend
+    ports:
+      - "8080:8080"
+
+volumes:
+  sikrypt-tls:
