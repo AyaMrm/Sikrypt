@@ -635,5 +635,8 @@ pub fn router(expected_api_key: String) -> Router {
         .route("/crypto/rsa/pss/sign", post(rsa_pss_sign))
         .route("/crypto/rsa/pss/verify", post(rsa_pss_verify))
         .layer(middleware::from_fn(rate_limit))
-        .layer(middleware::from_fn_with_state(expected_api_key, require_api_key))
+        .layer(middleware::from_fn_with_state(
+            expected_api_key,
+            require_api_key,
+        ))
 }

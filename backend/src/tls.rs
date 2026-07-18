@@ -28,8 +28,12 @@ fn generate_self_signed_pem() -> io::Result<(String, String)> {
 }
 
 fn material_paths() -> io::Result<(PathBuf, PathBuf)> {
-    let cert_path = std::env::var("SIKRYPT_TLS_CERT_PATH").ok().map(PathBuf::from);
-    let key_path = std::env::var("SIKRYPT_TLS_KEY_PATH").ok().map(PathBuf::from);
+    let cert_path = std::env::var("SIKRYPT_TLS_CERT_PATH")
+        .ok()
+        .map(PathBuf::from);
+    let key_path = std::env::var("SIKRYPT_TLS_KEY_PATH")
+        .ok()
+        .map(PathBuf::from);
 
     match (cert_path, key_path) {
         (Some(cert), Some(key)) => Ok((cert, key)),
