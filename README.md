@@ -1,27 +1,69 @@
 # Sikrypt
 
-Sikrypt est une API de cryptographie educative. Le backend (Rust/Axum) expose :
+Sikrypt is a demonstration application focused on modern and educational cryptography. It combines a Rust backend API with a React/Vite web interface to explore encryption, hashing, signing, and secure communication algorithms.
 
-- des endpoints modernes sous `/crypto/*` (base64 partout, rate limit, API key obligatoire)
-- des endpoints pedagogiques pour apprendre les algorithmes classiques
+## Overview
 
-Un front React/Vite minimal est fourni pour tester l API.
+The project has two main goals:
 
-## Demarrage rapide
+- provide a clear and testable API for learning cryptography through practice;
+- offer an interactive interface to visualize operations and algorithm results.
 
-### Pre-requis
+## Main Features
 
-- Rust stable
-- Node.js 18+ (front)
+### Modern API
 
-### Lancer le backend
+The API exposes routes under the /crypto prefix for more realistic and secure operations, including:
+
+- key generation: X25519, Ed25519, RSA;
+- secure channel: X25519 + HKDF-SHA256 + AES-256-GCM;
+- RSA-OAEP: encryption/decryption;
+- Ed25519: signing/verification;
+- RSA-PSS: signing/verification.
+
+### Educational Algorithms
+
+The backend also provides educational endpoints to discover classic algorithms and cryptography basics:
+
+- classic: Caesar, Vigenère, Hill, Playfair, Affine, OTP;
+- symmetric: AES-CBC, DES-CBC, RC4;
+- asymmetric: Diffie-Hellman, ElGamal, RSA;
+- signatures: DSA, ECDSA, ElGamal, RSA PKCS#1 v1.5, RSA-PSS;
+- hash: SHA-256, SHA-512, MD5, HMAC-SHA256;
+- homomorphic: Paillier;
+- secret sharing: Shamir;
+- communications: secure channel and voting demos.
+
+### Web Interface
+
+The frontend provides a simple UI to test endpoints, inspect inputs and outputs, and try the secure WebSocket chat demo.
+
+## Repository Structure
+
+- backend/: Rust API (Axum), routes, models, algorithms, tests;
+- front/: React/Vite web interface;
+- docs/: architecture notes;
+- docker-compose.yml: local stack orchestration;
+- package.json: root-level validation scripts.
+
+## Prerequisites
+
+- Stable Rust;
+- Node.js 18+;
+- Docker Desktop (optional, for the full stack).
+
+## Quick Start
+
+### 1. Start the backend
 
 ```bash
 cd backend
 cargo run
 ```
 
-### Lancer le front
+The backend listens by default on https://localhost:3000.
+
+### 2. Start the frontend
 
 ```bash
 cd front
@@ -29,86 +71,98 @@ npm install
 npm run dev
 ```
 
-## Docker
+The frontend is then available at http://localhost:5173.
 
-Lance la stack complete avec:
+### 3. Start with Docker
+
+From the project root:
 
 ```bash
 docker compose up --build
 ```
 
-- Backend: `https://localhost:3000`
-- Front: `http://localhost:8080`
-- API key: utilise `SIKRYPT_API_KEY` si tu veux remplacer la valeur par defaut `changeme`
+- Backend: https://localhost:3000
+- Frontend: http://localhost:8080
 
-## Documentation
+## Configuration
 
-- OpenAPI JSON: `https://localhost:3000/openapi.json`
-- Swagger UI: `https://localhost:3000/docs`
+### Backend environment variables
 
-## Config rapide
+- SIKRYPT_HOST: listening host (default: 127.0.0.1);
+- SIKRYPT_PORT: listening port (default: 3000);
+- SIKRYPT_API_KEY: required key to protect /crypto routes;
+- SIKRYPT_TLS_CERT_PATH and SIKRYPT_TLS_KEY_PATH: paths to a custom TLS certificate;
+- SIKRYPT_REQUEST_TIMEOUT_MS: request timeout;
+- SIKRYPT_CONCURRENCY_LIMIT: concurrency limit;
+- SIKRYPT_CORS_ORIGINS: allowed CORS origins.
 
-### Backend
+### Frontend environment variables
 
-- `SIKRYPT_HOST` (defaut: `127.0.0.1`)
-- `SIKRYPT_PORT` (defaut: `3000`)
-- `SIKRYPT_API_KEY` (obligatoire, protege `/crypto/*`)
-- `SIKRYPT_TLS_CERT_PATH` et `SIKRYPT_TLS_KEY_PATH` (optionnels, sinon un certificat auto-signe est genere)
-- `SIKRYPT_REQUEST_TIMEOUT_MS` (defaut: `15000`)
-- `SIKRYPT_CONCURRENCY_LIMIT` (defaut: `128`)
-- `SIKRYPT_CORS_ORIGINS` (defaut: `http://localhost:5173,http://127.0.0.1:5173`)
+- VITE_API_BASE: API base URL used by the frontend (default: /api).
 
-### Front
+> The SIKRYPT_API_KEY secret is not injected into the frontend bundle. It must be handled on the server or proxy side.
 
-- `VITE_API_BASE` (optionnel, defaut: `/api`)
+## API Documentation
 
-Le secret `SIKRYPT_API_KEY` n'est plus injecte dans le bundle front. Il est ajoute au niveau du proxy Nginx ou du proxy Vite en dev.
+When the backend is running, you can consult:
+
+- OpenAPI JSON: https://localhost:3000/openapi.json
+- Swagger UI: https://localhost:3000/docs
+
+## Quick Examples
+
+### Generate an X25519 key pair
 
 ```bash
-VITE_API_BASE=/api
+curl -k -s -X POST https://localhost:3000/crypto/keys/x25519
 ```
 
-## Architecture rapide
+### Encrypt a message with RSA-OAEP
 
-- `backend/` : API Rust (Axum), routes, models, algorithms, tests
-- `front/` : interface web minimale (React/Vite)
-- `docs/` : notes d architecture
+```bash
+curl -k -s -X POST https://localhost:3000/crypto/rsa/oaep/encrypt \
+  -H "content-type: application/json" \
+  -d '{
+    "public_key_pem": "<PEM>",
+    "plaintext_base64": "<BASE64>",
+    "label_base64": "<BASE64>"
+  }'
+```
 
-## Algorithmes (educatif)
+### Test a classic algorithm
 
-- Asymetriques: Diffie-Hellman, ECC (courbes jouets), ElGamal, RSA
-- Signatures: DSA, ECDSA (courbe jouet), ElGamal, RSA-PSS, RSA-PKCS#1 v1.5
-- Hash: SHA-256, SHA-512, MD5, HMAC-SHA256
-- Symetriques: AES-CBC, DES-CBC, RC4
-- Classiques: Caesar, Vigenere, Hill, Playfair, Affine, OTP, Analyse
-- Homomorphique: Paillier
-- Secret sharing: Shamir
-- Communications: Secure channel, Voting (demo)
-
-## API moderne (/crypto)
-
-- Generation de cles: X25519, Ed25519, RSA
-- Secure channel: X25519 + HKDF-SHA256 + AES-256-GCM
-- RSA-OAEP (encrypt/decrypt)
-- Ed25519 (sign/verify)
-- RSA-PSS (sign/verify)
+```bash
+curl -k -s -X POST https://localhost:3000/classic/caesar/encrypt \
+  -H "content-type: application/json" \
+  -d '{"text":"HELLO","shift":3}'
+```
 
 ## Tests
 
+### Backend
+
 ```bash
-cd backend
-cargo test
+cargo test --manifest-path backend/Cargo.toml
 ```
 
-## Lire les README detailles
+### Frontend
 
-- Backend: [backend/README.md](backend/README.md)
-- Front: [front/README.md](front/README.md)
+```bash
+npm --prefix front test
+```
 
-## Limites educatives
+### Global validation
 
-Les endpoints pedagogiques sont destines a l apprentissage et aux demonstrations. Ils ne visent pas un usage production.
+```bash
+npm test
+```
 
-## Licence
+## Important Notes
 
-Voir `LICENSE`.
+- The /crypto routes require a valid API key.
+- Binary data is typically transmitted as base64.
+- Educational endpoints are intended for learning and demonstration, not for production use.
+
+## License
+
+See the LICENSE file.
